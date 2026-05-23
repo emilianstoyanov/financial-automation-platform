@@ -1,0 +1,13 @@
+Financial Report - Q1 2024
+Company: BusinessGroup JSC
+
+| Month    | Revenue (k EUR) | Expenses (k EUR) | Profit (k EUR) |
+|----------|-----------------|------------------|----------------|
+| January  | 245.5           | 187.3            | 58.2           |
+| February | 289.7           | 201.5            | 88.2           |
+| March    | 312.8           | 224.1            | 88.7           |
+| TOTAL Q1 | 848.0           | 612.9            | 235.1          |
+
+Currency: EUR
+Note: All amounts in thousands of EUR
+Report date: 05.04.2024

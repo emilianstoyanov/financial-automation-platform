@@ -1,0 +1,13 @@
+# Sample URLs for scraping (verified, publicly accessible)
+
+# Official institutions
+https://www.bnb.bg/
+https://www.investor.bg/
+
+# For testing PDF extraction
+https://www.minfin.bg/bg/1394
+
+# Notes:
+# - All URLs are publicly accessible
+# - Add delay between requests (1-2 sec minimum)
+# - Make sure you have proper User-Agent header

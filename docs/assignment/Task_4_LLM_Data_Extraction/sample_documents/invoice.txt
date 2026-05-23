@@ -1,0 +1,19 @@
+INVOICE № 2024-0457
+
+Date: 15.03.2024
+Company: TechnoSoft Ltd
+Registration: 123456789
+
+Service Description:
+- Software maintenance (January-March): 2,400.00 EUR
+- Consulting services: 1,850.00 EUR
+- Cloud infrastructure: 680.50 EUR
+
+Subtotal: 4,930.50 EUR
+VAT (20%): 986.10 EUR
+
+TOTAL AMOUNT DUE: 5,916.60 EUR
+
+Payment terms: 30 days
+Bank: UniCredit Bulbank
+IBAN: BG80UNCR76301234567890
