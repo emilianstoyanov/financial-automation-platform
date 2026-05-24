@@ -1,0 +1,101 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.ruff_cache/
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Local data (keep directory tree, ignore DB and runtime artifacts)
+data/*
+!data/.gitkeep
+!data/*/
+!data/*/.gitkeep
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Heroku
+*.log
+
+# SQLite database
+data/*.db
+data/**/*.db
+
+
+# Runtime/generated data
+data/**/*.json
+data/**/*.txt
+data/**/*.md
+
+# Keep folder structure
+!data/**/.gitkeep
+
+# Keep input/sample files
+!data/etl/dirty_financial_data.csv
+!data/scraping/sample_urls.txt
+!data/scraping/fixtures/**

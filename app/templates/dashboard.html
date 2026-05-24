@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} — Dashboard</title>
+  <link rel="icon" href="/static/favicon.png" type="image/png" />
+  <link rel="shortcut icon" href="/static/favicon.png" type="image/png" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+</head>
+<body class="dashboard-body">
+  <header class="dashboard-header">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <h1 class="h2 mb-2 fw-semibold">{{ app_name }}</h1>
+          <p class="subtitle mb-0">ETL, Exchange Rates, Scraping, LLM Extraction</p>
+        </div>
+        <div class="col-lg-4 btn-group-links text-lg-end mt-3 mt-lg-0">
+          <a href="https://github.com/emilianstoyanov/financial-automation-platform" class="btn btn-outline-light btn-sm me-2" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="/docs" class="btn btn-outline-light btn-sm me-2" target="_blank" rel="noopener">Swagger</a>
+          <a href="/redoc" class="btn btn-outline-light btn-sm" target="_blank" rel="noopener">ReDoc</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container pb-4">
+    <div class="row g-4">
+      <!-- System Status -->
+      <div class="col-12">
+        <div class="card task-card status-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>System Status</span>
+            <span class="badge text-bg-secondary badge-task">Task 5</span>
+          </div>
+          <div class="card-body status-card-body">
+            <p class="text-muted small status-card-intro mb-0">Live health check from <code>{{ api_prefix }}/health</code>.</p>
+            <div class="status-toolbar d-flex flex-wrap align-items-center gap-2">
+              <div class="status-toolbar-badges d-flex flex-wrap gap-2" id="health-badges">
+                <span class="badge rounded-pill text-bg-secondary status-badge" id="badge-fastapi">FastAPI: checking…</span>
+                <span class="badge rounded-pill text-bg-secondary status-badge" id="badge-sqlite">SQLite: checking…</span>
+                <span class="badge rounded-pill text-bg-secondary status-badge" id="badge-env">Environment: —</span>
+              </div>
+              <div class="status-toolbar-actions d-flex flex-wrap gap-2">
+                <a href="/docs" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">Open Swagger /docs</a>
+                <a href="/redoc" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">Open ReDoc /redoc</a>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="health-refresh">Refresh status</button>
+              </div>
+            </div>
+            <div class="status-message status-card-message" id="health-status" aria-live="polite"></div>
+            <button
+              type="button"
+              class="btn btn-sm health-response-toggle"
+              id="health-response-toggle"
+              aria-expanded="false"
+              aria-controls="health-response-panel"
+              hidden
+            >
+              View health response
+            </button>
+            <div id="health-response-panel" class="health-response-panel" hidden>
+              <div class="result-panel health-result-panel">
+                <div class="result-area" id="health-result"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ETL -->
+      <div class="col-lg-6">
+        <div class="card task-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>ETL Pipeline</span>
+            <span class="badge text-bg-primary badge-task">Task 1</span>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">Upload a financial CSV. Required columns: date, company_id, revenue, expenses, currency, category.</p>
+            <div class="mb-3">
+              <label for="etl-file" class="form-label">CSV file</label>
+              <div class="dash-file-upload dash-file-upload-primary">
+                <input type="file" class="dash-file-input" id="etl-file" accept=".csv,text/csv" />
+                <span class="dash-file-name" id="etl-file-name">No file chosen</span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-action" id="etl-submit" data-loading-text="Processing…">
+              Process CSV
+            </button>
+            <div class="result-panel mt-3">
+              <div class="result-panel-header">
+                <div class="result-panel-label">Result</div>
+                <button type="button" class="btn btn-sm btn-clear-results" id="etl-clear" hidden>Clear results</button>
+              </div>
+              <div class="status-message" id="etl-status" aria-live="polite"></div>
+              <div class="result-area" id="etl-result">
+                <p class="result-placeholder text-muted small mb-0">Quality report and preview will appear here.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exchange -->
+      <div class="col-lg-6">
+        <div class="card task-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Exchange Rates</span>
+            <span class="badge text-bg-success badge-task">Task 2</span>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">Convert between BGN, EUR, USD, and GBP using live cached rates.</p>
+            <div class="row g-2 mb-3">
+              <div class="col-4">
+                <label for="ex-from" class="form-label">From</label>
+                <select class="form-select" id="ex-from">
+                  <option value="EUR" selected>EUR</option>
+                  <option value="BGN">BGN</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                </select>
+              </div>
+              <div class="col-4">
+                <label for="ex-to" class="form-label">To</label>
+                <select class="form-select" id="ex-to">
+                  <option value="BGN" selected>BGN</option>
+                  <option value="EUR">EUR</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                </select>
+              </div>
+              <div class="col-4">
+                <label for="ex-amount" class="form-label">Amount</label>
+                <input type="number" class="form-control" id="ex-amount" min="0" step="any" value="100" />
+              </div>
+            </div>
+            <button type="button" class="btn btn-success btn-action" id="ex-submit" data-loading-text="Converting…">
+              Convert
+            </button>
+            <div class="result-panel mt-3">
+              <div class="result-panel-header">
+                <div class="result-panel-label">Result</div>
+                <button type="button" class="btn btn-sm btn-clear-results" id="ex-clear" hidden>Clear results</button>
+              </div>
+              <div class="status-message" id="ex-status" aria-live="polite"></div>
+              <div class="result-area" id="ex-result">
+                <p class="result-placeholder text-muted small mb-0">Conversion JSON will appear here.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scraping -->
+      <div class="col-lg-6">
+        <div class="card task-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Web Document Scraper</span>
+            <span class="badge text-bg-warning text-dark badge-task">Task 3</span>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">Scrape PDF links from a public page URL (up to 20 documents per page).</p>
+            <div class="mb-3">
+              <label for="scrape-url" class="form-label">Page URL</label>
+              <input type="url" class="form-control" id="scrape-url"
+                     placeholder="https://www.nsi.bg/pages/..." />
+            </div>
+            <button type="button" class="btn btn-warning btn-action" id="scrape-submit" data-loading-text="Scraping…">
+              Scrape Documents
+            </button>
+            <div class="result-panel mt-3">
+              <div class="result-panel-header">
+                <div class="result-panel-label">Result</div>
+                <button type="button" class="btn btn-sm btn-clear-results" id="scrape-clear" hidden>Clear results</button>
+              </div>
+              <div class="status-message" id="scrape-status" aria-live="polite"></div>
+              <div class="result-area" id="scrape-result">
+                <p class="result-placeholder text-muted small mb-0">Document count and preview will appear here.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LLM -->
+      <div class="col-lg-6">
+        <div class="card task-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>LLM Extraction</span>
+            <span class="badge text-bg-info text-dark badge-task">Task 4</span>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">Paste text or upload a <code>.txt</code> file. Uses OpenAI when configured; otherwise mock rules.</p>
+            <div class="mb-3">
+              <label for="llm-file" class="form-label">Upload document (.txt)</label>
+              <div class="dash-file-upload dash-file-upload-info">
+                <input type="file" class="dash-file-input" id="llm-file" accept=".txt,text/plain" />
+                <span class="dash-file-name" id="llm-file-name">No file chosen</span>
+              </div>
+              <div class="form-text">Selected file content is loaded into the text area below for review.</div>
+            </div>
+            <div class="mb-3">
+              <label for="llm-text" class="form-label">Document text</label>
+              <textarea class="form-control font-monospace" id="llm-text" rows="6"
+                placeholder="Paste or upload financial document text here…"></textarea>
+            </div>
+            <div class="mb-3 llm-ai-settings">
+              <button
+                type="button"
+                class="btn btn-sm w-100 llm-ai-settings-toggle collapsed"
+                id="llm-ai-settings-toggle"
+                aria-expanded="false"
+                aria-controls="llm-ai-settings-panel"
+              >
+                <span>Advanced AI Settings</span>
+                <span class="llm-settings-chevron" aria-hidden="true">▾</span>
+              </button>
+              <div class="collapse" id="llm-ai-settings-panel">
+                <div class="llm-ai-settings-body border rounded mt-2 p-3">
+                  <label for="llm-model" class="form-label mb-1">Model</label>
+                  <select class="form-select form-select-sm" id="llm-model" aria-describedby="llm-model-help">
+                    <option value="gpt-4o-mini" selected>gpt-4o-mini</option>
+                    <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+                    <option value="gpt-4.1">gpt-4.1</option>
+                  </select>
+                  <div
+                    class="llm-power-level mt-3"
+                    id="llm-power-level"
+                    data-tone="fast"
+                    role="group"
+                    aria-label="Model power level"
+                  >
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="llm-power-label fw-semibold" id="llm-power-label">Fast</span>
+                      <span class="llm-power-count small text-muted" id="llm-power-count">1 / 3</span>
+                    </div>
+                    <div
+                      class="llm-power-bars"
+                      id="llm-power-bars"
+                      role="meter"
+                      aria-valuemin="0"
+                      aria-valuemax="3"
+                      aria-valuenow="1"
+                    >
+                      <div class="llm-power-bar"></div>
+                      <div class="llm-power-bar"></div>
+                      <div class="llm-power-bar"></div>
+                    </div>
+                  </div>
+                  <p class="form-text text-muted small mb-0 mt-2" id="llm-model-help">
+                    Higher-quality models may increase OpenAI API costs.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-info btn-action" id="llm-submit" data-loading-text="Extracting…">
+              Extract Data
+            </button>
+            <div class="result-panel mt-3">
+              <div class="result-panel-header">
+                <div class="result-panel-label">Result</div>
+                <button type="button" class="btn btn-sm btn-clear-results" id="llm-clear" hidden>Clear results</button>
+              </div>
+              <div class="status-message" id="llm-status" aria-live="polite"></div>
+              <div class="result-area" id="llm-result">
+                <p class="result-placeholder text-muted small mb-0">Structured extraction JSON will appear here.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="dashboard-footer">
+    <div class="container">
+      Local dashboard — calls <code>{{ api_prefix }}</code> endpoints only. Results are not stored unless the API persists them.
+    </div>
+  </footer>
+
+  <script>
+    const API = "{{ api_prefix }}";
+
+    function updateFileName(inputId, nameId) {
+      const input = document.getElementById(inputId);
+      const label = document.getElementById(nameId);
+      if (!input || !label) return;
+      input.addEventListener("change", function () {
+        const file = input.files && input.files[0];
+        if (file) {
+          label.textContent = file.name;
+          label.classList.add("is-selected");
+        } else {
+          label.textContent = "No file chosen";
+          label.classList.remove("is-selected");
+        }
+      });
+    }
+
+    updateFileName("etl-file", "etl-file-name");
+    updateFileName("llm-file", "llm-file-name");
+
+    function setStatus(el, type, message) {
+      el.className = "status-message " + (type || "");
+      if (type === "loading") {
+        el.innerHTML =
+          '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' +
+          escapeHtml(message || "Loading…");
+      } else {
+        el.textContent = message || "";
+      }
+    }
+
+    function setLoading(btn, loading) {
+      const defaultText = btn.dataset.defaultText || btn.textContent;
+      if (!btn.dataset.defaultText) btn.dataset.defaultText = defaultText;
+      btn.disabled = loading;
+      btn.textContent = loading ? (btn.dataset.loadingText || "Loading…") : btn.dataset.defaultText;
+    }
+
+    function clearResult(container) {
+      container.innerHTML = "";
+      delete container.dataset.copyText;
+    }
+
+    const RESULT_PLACEHOLDERS = {
+      etl: '<p class="result-placeholder text-muted small mb-0">Quality report and preview will appear here.</p>',
+      ex: '<p class="result-placeholder text-muted small mb-0">Conversion JSON will appear here.</p>',
+      scrape: '<p class="result-placeholder text-muted small mb-0">Document count and preview will appear here.</p>',
+      llm: '<p class="result-placeholder text-muted small mb-0">Structured extraction JSON will appear here.</p>',
+    };
+
+    function setClearVisible(clearBtnId, visible) {
+      const btn = document.getElementById(clearBtnId);
+      if (btn) btn.hidden = !visible;
+    }
+
+    function resetResultArea(container, placeholderHtml) {
+      clearResult(container);
+      container.innerHTML = placeholderHtml;
+    }
+
+    function resetFileInput(inputId, nameId) {
+      const input = document.getElementById(inputId);
+      const label = document.getElementById(nameId);
+      if (input) input.value = "";
+      if (label) {
+        label.textContent = "No file chosen";
+        label.classList.remove("is-selected");
+      }
+    }
+
+    function resetEtlTask() {
+      resetFileInput("etl-file", "etl-file-name");
+      setStatus(document.getElementById("etl-status"), "", "");
+      resetResultArea(document.getElementById("etl-result"), RESULT_PLACEHOLDERS.etl);
+      setClearVisible("etl-clear", false);
+    }
+
+    function resetExchangeTask() {
+      document.getElementById("ex-from").value = "EUR";
+      document.getElementById("ex-to").value = "BGN";
+      document.getElementById("ex-amount").value = "100";
+      setStatus(document.getElementById("ex-status"), "", "");
+      resetResultArea(document.getElementById("ex-result"), RESULT_PLACEHOLDERS.ex);
+      setClearVisible("ex-clear", false);
+    }
+
+    function resetScrapeTask() {
+      document.getElementById("scrape-url").value = "";
+      setStatus(document.getElementById("scrape-status"), "", "");
+      resetResultArea(document.getElementById("scrape-result"), RESULT_PLACEHOLDERS.scrape);
+      setClearVisible("scrape-clear", false);
+    }
+
+    function resetLlmTask() {
+      resetFileInput("llm-file", "llm-file-name");
+      document.getElementById("llm-text").value = "";
+      const modelSelect = document.getElementById("llm-model");
+      if (modelSelect) {
+        modelSelect.value = "gpt-4o-mini";
+        updateLlmPowerIndicator();
+      }
+      setStatus(document.getElementById("llm-status"), "", "");
+      resetResultArea(document.getElementById("llm-result"), RESULT_PLACEHOLDERS.llm);
+      setClearVisible("llm-clear", false);
+    }
+
+    const LLM_MODEL_PROFILES = {
+      "gpt-4o-mini": { label: "Fast", level: 1, tone: "fast" },
+      "gpt-4.1-mini": { label: "Balanced", level: 2, tone: "balanced" },
+      "gpt-4.1": { label: "Strong", level: 3, tone: "strong" },
+    };
+
+    function updateLlmPowerIndicator() {
+      const select = document.getElementById("llm-model");
+      const container = document.getElementById("llm-power-level");
+      const barsRoot = document.getElementById("llm-power-bars");
+      const labelEl = document.getElementById("llm-power-label");
+      const countEl = document.getElementById("llm-power-count");
+      if (!select || !container || !barsRoot || !labelEl || !countEl) return;
+
+      const profile = LLM_MODEL_PROFILES[select.value] || LLM_MODEL_PROFILES["gpt-4o-mini"];
+      const bars = barsRoot.querySelectorAll(".llm-power-bar");
+
+      container.dataset.tone = profile.tone;
+      labelEl.textContent = profile.label;
+      countEl.textContent = profile.level + " / 3";
+      barsRoot.setAttribute("aria-valuenow", String(profile.level));
+
+      bars.forEach(function (bar, index) {
+        const active = index < profile.level;
+        bar.classList.remove("active", "animating");
+        void bar.offsetWidth;
+        bar.classList.toggle("active", active);
+        if (active) {
+          bar.classList.add("animating");
+        }
+      });
+    }
+
+    function getSelectedLlmModel() {
+      const select = document.getElementById("llm-model");
+      if (!select || !select.value) return null;
+      return select.value;
+    }
+
+    const COPY_BTN_ICON =
+      '<svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>' +
+      '<path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>';
+
+    async function copyToClipboard(text, btn) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.setAttribute("readonly", "");
+          textarea.style.position = "fixed";
+          textarea.style.left = "-9999px";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+        }
+      } catch (err) {
+        return;
+      }
+
+      if (!btn) return;
+      const original = btn.dataset.originalHtml || btn.innerHTML;
+      btn.dataset.originalHtml = original;
+      btn.classList.add("copied");
+      btn.innerHTML = COPY_BTN_ICON + " Copied!";
+      btn.disabled = true;
+      setTimeout(function () {
+        btn.classList.remove("copied");
+        btn.innerHTML = original;
+        btn.disabled = false;
+      }, 2000);
+    }
+
+    document.addEventListener("click", function (event) {
+      const btn = event.target.closest(".btn-copy");
+      if (!btn) return;
+      const area = btn.closest(".result-area");
+      const pre = area && area.querySelector(".result-pre");
+      const text = (area && area.dataset.copyText) || (pre && pre.textContent) || "";
+      if (!text) return;
+      copyToClipboard(text, btn);
+    });
+
+    function buildJsonOutputBlock(jsonString, title) {
+      const heading = title ? '<div class="result-panel-subtitle">' + escapeHtml(title) + "</div>" : "";
+      return (
+        heading +
+        '<div class="result-output">' +
+        '<div class="result-output-actions">' +
+        '<button type="button" class="btn btn-copy" aria-label="Copy result">' +
+        COPY_BTN_ICON +
+        " Copy</button></div>" +
+        '<pre class="result-pre p-3">' +
+        escapeHtml(jsonString) +
+        "</pre></div>"
+      );
+    }
+
+    function etlMetricCard(label, value, tone) {
+      return (
+        '<div class="col-6 col-md-4">' +
+        '<div class="etl-metric-card etl-metric-' + tone + '">' +
+        '<span class="etl-metric-label">' + escapeHtml(label) + "</span>" +
+        '<span class="badge rounded-pill etl-metric-value">' + escapeHtml(String(value)) + "</span>" +
+        "</div></div>"
+      );
+    }
+
+    function etlRowLabel(count, singular, plural) {
+      return count + " " + (count === 1 ? singular : plural);
+    }
+
+    function buildRejectedRowsPanel(rejectedRows, panelId, expanded) {
+      if (!rejectedRows || rejectedRows.length === 0) {
+        return "";
+      }
+
+      let rowsHtml = "";
+      rejectedRows.forEach(function (item) {
+        rowsHtml +=
+          "<tr>" +
+          "<td>" + escapeHtml(String(item.row_number)) + "</td>" +
+          "<td>" + escapeHtml(item.reason || "") + "</td>" +
+          '<td><code class="etl-rejected-data">' +
+          escapeHtml(JSON.stringify(item.original_data || {})) +
+          "</code></td></tr>";
+      });
+
+      const hiddenAttr = expanded ? "" : " hidden";
+      return (
+        '<div id="' + panelId + '" class="etl-rejected-panel"' + hiddenAttr + ">" +
+        '<div class="table-responsive">' +
+        '<table class="table table-sm table-bordered etl-rejected-table mb-0">' +
+        "<thead><tr><th>Row</th><th>Reason</th><th>Original data</th></tr></thead>" +
+        "<tbody>" + rowsHtml + "</tbody></table></div></div>"
+      );
+    }
+
+    function renderEtlResult(container, data) {
+      const report = data.quality_report || {};
+      const rejectedRows = data.rejected_rows || [];
+      const payload = {
+        quality_report: report,
+        preview: data.preview || [],
+        rejected_rows: rejectedRows,
+      };
+      const json = JSON.stringify(payload, null, 2);
+      container.dataset.copyText = json;
+
+      const total = Number(report.total_rows) || 0;
+      const cleaned = Number(report.cleaned_rows) || 0;
+      const removed = Number(report.removed_rows) || 0;
+      const qualityRate = total > 0 ? ((cleaned / total) * 100).toFixed(1) : "0.0";
+      let rateTone = "bad";
+      if (Number(qualityRate) >= 90) rateTone = "good";
+      else if (Number(qualityRate) >= 70) rateTone = "warn";
+
+      const panelId = "etl-rejected-" + Date.now();
+      const hasRejectedRows = rejectedRows.length > 0;
+      const subtitle =
+        etlRowLabel(cleaned, "valid row kept", "valid rows kept") + ", " +
+        etlRowLabel(removed, "invalid row removed", "invalid rows removed");
+
+      const rejectedToggle = hasRejectedRows
+        ? '<button type="button" class="btn btn-sm btn-outline-secondary etl-rejected-toggle mt-2" ' +
+          'aria-expanded="true" aria-controls="' + panelId + '">Hide rejected rows</button>'
+        : "";
+
+      const summary =
+        '<div class="etl-quality-summary">' +
+        '<div class="etl-success-banner etl-rate-' + rateTone + '">' +
+        '<span class="etl-success-label">Data Quality: ' + escapeHtml(qualityRate) + "%</span>" +
+        '<span class="etl-success-detail">' + escapeHtml(subtitle) + "</span></div>" +
+        '<div class="row g-2 etl-metrics-grid">' +
+        etlMetricCard("Total rows", report.total_rows ?? 0, "neutral") +
+        etlMetricCard("Cleaned rows", report.cleaned_rows ?? 0, "success") +
+        etlMetricCard("Removed rows", report.removed_rows ?? 0, "danger") +
+        etlMetricCard("Duplicate rows removed", report.duplicate_rows_removed ?? 0, "warning") +
+        etlMetricCard("Invalid numeric rows", report.invalid_numeric_rows ?? 0, "danger") +
+        etlMetricCard("Invalid date rows", report.invalid_date_rows ?? 0, "danger") +
+        etlMetricCard("Missing value rows", report.missing_value_rows ?? 0, "warning") +
+        "</div>" +
+        rejectedToggle +
+        buildRejectedRowsPanel(rejectedRows, panelId, hasRejectedRows) +
+        "</div>";
+
+      container.innerHTML = summary + buildJsonOutputBlock(json, "Raw JSON");
+    }
+
+    function renderJson(container, data, title) {
+      const json = JSON.stringify(data, null, 2);
+      container.dataset.copyText = json;
+      container.innerHTML = buildJsonOutputBlock(json, title);
+    }
+
+    function formatLlmAmount(value) {
+      if (value === null || value === undefined || value === "") return "—";
+      const num = Number(value);
+      if (Number.isNaN(num)) return String(value);
+      if (Math.abs(num - Math.round(num)) < 1e-9) return String(Math.round(num));
+      return String(num);
+    }
+
+    function filterNormalizationValidationErrors(errors) {
+      return (errors || []).filter(function (message) {
+        const lower = String(message).toLowerCase();
+        if (lower.indexOf("warning:") !== 0) return false;
+        return (
+          lower.indexOf("currenc") !== -1 ||
+          lower.indexOf("normalization") !== -1 ||
+          lower.indexOf("unit") !== -1 ||
+          lower.indexOf("thousand") !== -1 ||
+          lower.indexOf("million") !== -1
+        );
+      });
+    }
+
+    function buildLlmValidationAlerts(errors) {
+      if (!errors || errors.length === 0) return "";
+
+      const items = errors
+        .map(function (message) {
+          const isWarning = String(message).toLowerCase().indexOf("warning:") === 0;
+          const badgeClass = isWarning ? "text-bg-warning text-dark" : "text-bg-danger";
+          return (
+            '<span class="badge rounded-pill llm-validation-badge ' +
+            badgeClass +
+            '">' +
+            escapeHtml(message) +
+            "</span>"
+          );
+        })
+        .join("");
+
+      return (
+        '<div class="alert alert-warning llm-validation-alert py-2 px-3 mb-3" role="alert">' +
+        '<div class="small fw-semibold mb-1">Validation notes</div>' +
+        '<div class="d-flex flex-wrap gap-2">' +
+        items +
+        "</div></div>"
+      );
+    }
+
+    function buildLlmNormalizationSummary(record) {
+      if (!record) return "";
+
+      const hasCore =
+        record.original_amount_text ||
+        record.original_unit ||
+        record.normalized_amount !== null && record.normalized_amount !== undefined ||
+        record.normalization_note ||
+        (record.detected_currencies && record.detected_currencies.length > 0);
+      if (!hasCore) return "";
+
+      const primaryCurrency = record.primary_currency || record.currency || "—";
+      const detected = (record.detected_currencies || []).join(", ") || "—";
+      const normalizedDisplay =
+        record.normalized_amount !== null && record.normalized_amount !== undefined
+          ? formatLlmAmount(record.normalized_amount) +
+            (primaryCurrency !== "—" ? " " + primaryCurrency : "")
+          : "—";
+
+      return (
+        '<div class="llm-normalization-summary mb-3">' +
+        '<div class="result-panel-subtitle mb-2">Normalization Summary</div>' +
+        '<dl class="llm-norm-dl row g-2 mb-0">' +
+        '<dt class="col-sm-5">Original amount</dt><dd class="col-sm-7">' +
+        escapeHtml(record.original_amount_text || "—") +
+        "</dd>" +
+        '<dt class="col-sm-5">Original unit</dt><dd class="col-sm-7">' +
+        escapeHtml(record.original_unit || "—") +
+        "</dd>" +
+        '<dt class="col-sm-5">Normalized amount</dt><dd class="col-sm-7">' +
+        escapeHtml(normalizedDisplay) +
+        "</dd>" +
+        '<dt class="col-sm-5">Primary currency</dt><dd class="col-sm-7">' +
+        escapeHtml(primaryCurrency) +
+        "</dd>" +
+        '<dt class="col-sm-5">Detected currencies</dt><dd class="col-sm-7">' +
+        escapeHtml(detected) +
+        "</dd>" +
+        '<dt class="col-sm-5">Normalization note</dt><dd class="col-sm-7">' +
+        escapeHtml(record.normalization_note || "—") +
+        "</dd>" +
+        "</dl>" +
+        "</div>"
+      );
+    }
+
+    function renderLlmResult(container, apiData) {
+      const json = JSON.stringify(apiData, null, 2);
+      container.dataset.copyText = json;
+      const record = apiData.extracted_results && apiData.extracted_results[0];
+      const validationErrors = filterNormalizationValidationErrors(
+        (record && record.validation_errors) || apiData.errors || []
+      );
+      container.innerHTML =
+        buildLlmValidationAlerts(validationErrors) +
+        buildLlmNormalizationSummary(record || {}) +
+        buildJsonOutputBlock(json, "Structured extraction");
+    }
+
+    function isScrapeBlockedError(errorText) {
+      if (!errorText) return false;
+      const lower = String(errorText).toLowerCase();
+      return /cloudflare|blocked|forbidden|\b403\b|captcha|waf/.test(lower);
+    }
+
+    function scrapeFirstError(errors) {
+      if (!errors || errors.length === 0) return "";
+      const first = errors[0];
+      return typeof first === "string" ? first : JSON.stringify(first);
+    }
+
+    function shouldShowScrapeErrorAlert(data, documentCount) {
+      const errors = data.errors || [];
+      return data.status === "failed" || (documentCount === 0 && errors.length > 0);
+    }
+
+    function buildScrapeErrorAlert(message, isBlocked) {
+      const blockedClass = isBlocked ? " scrape-alert-blocked" : "";
+      const note = isBlocked
+        ? '<p class="mb-0 small scrape-alert-note">The website blocks automated access. The scraper handled this safely and did not crash.</p>'
+        : "";
+      return (
+        '<div class="alert alert-danger scrape-error-alert' + blockedClass + '" role="alert">' +
+        '<div class="scrape-error-alert-title">Scraping failed or blocked</div>' +
+        '<p class="mb-0 scrape-error-alert-message">' + escapeHtml(message) + "</p>" +
+        note +
+        "</div>"
+      );
+    }
+
+    function renderScrapeResult(container, data) {
+      const payload = {
+        total_documents: data.total_documents,
+        documents: data.documents,
+        errors: data.errors,
+      };
+      const json = JSON.stringify(payload, null, 2);
+      container.dataset.copyText = json;
+
+      const documentCount =
+        data.total_documents ?? (data.documents ? data.documents.length : 0);
+      const errors = data.errors || [];
+      let alertHtml = "";
+
+      if (shouldShowScrapeErrorAlert(data, documentCount)) {
+        const firstError = scrapeFirstError(errors);
+        const message =
+          firstError ||
+          "No documents were found and the scrape did not complete successfully.";
+        alertHtml = buildScrapeErrorAlert(message, isScrapeBlockedError(message));
+      }
+
+      container.innerHTML = alertHtml + buildJsonOutputBlock(json, "Documents preview");
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    async function parseErrorResponse(response) {
+      try {
+        const body = await response.json();
+        if (body.detail) {
+          return typeof body.detail === "string"
+            ? body.detail
+            : JSON.stringify(body.detail);
+        }
+        return JSON.stringify(body);
+      } catch {
+        return response.statusText || "Request failed";
+      }
+    }
+
+    function setBadge(el, label, ok) {
+      el.textContent = label;
+      el.className = "badge rounded-pill status-badge " + (ok ? "text-bg-success" : "text-bg-danger");
+    }
+
+    function setHealthResponseExpanded(expanded) {
+      const toggle = document.getElementById("health-response-toggle");
+      const panel = document.getElementById("health-response-panel");
+      if (!toggle || !panel) return;
+      panel.hidden = !expanded;
+      toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+      toggle.textContent = expanded ? "Hide health response" : "View health response";
+    }
+
+    function setHealthResponseToggleVisible(visible) {
+      const toggle = document.getElementById("health-response-toggle");
+      if (!toggle) return;
+      toggle.hidden = !visible;
+      if (!visible) {
+        setHealthResponseExpanded(false);
+      }
+    }
+
+    async function loadHealth() {
+      const status = document.getElementById("health-status");
+      const result = document.getElementById("health-result");
+      const badgeFastapi = document.getElementById("badge-fastapi");
+      const badgeSqlite = document.getElementById("badge-sqlite");
+      const badgeEnv = document.getElementById("badge-env");
+      const refreshBtn = document.getElementById("health-refresh");
+
+      setLoading(refreshBtn, true);
+      setStatus(status, "loading", "Checking API health…");
+      setHealthResponseToggleVisible(false);
+      clearResult(result);
+
+      try {
+        const response = await fetch(API + "/health");
+        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        const data = await response.json();
+
+        const apiOk = data.status === "healthy" || data.status === "degraded";
+        const dbOk = data.database === "connected";
+
+        setBadge(badgeFastapi, "FastAPI: running", apiOk);
+        setBadge(badgeSqlite, "SQLite: " + (data.database || "unknown"), dbOk);
+        badgeEnv.textContent = "Environment: " + (data.environment || "—");
+        badgeEnv.className = "badge rounded-pill text-bg-primary status-badge";
+
+        setStatus(
+          status,
+          data.status === "healthy" ? "success" : "error",
+          "API status: " + data.status + " · " + (data.service || "service")
+        );
+        renderJson(result, data, null);
+        setHealthResponseToggleVisible(true);
+        setHealthResponseExpanded(false);
+      } catch (err) {
+        setBadge(badgeFastapi, "FastAPI: unreachable", false);
+        setBadge(badgeSqlite, "SQLite: unknown", false);
+        badgeEnv.textContent = "Environment: —";
+        badgeEnv.className = "badge rounded-pill text-bg-secondary status-badge";
+        setStatus(status, "error", err.message || String(err));
+        result.innerHTML =
+          '<p class="result-placeholder text-danger small mb-0">Could not reach health endpoint.</p>';
+        setHealthResponseToggleVisible(true);
+        setHealthResponseExpanded(false);
+      } finally {
+        setLoading(refreshBtn, false);
+      }
+    }
+
+    document.addEventListener("click", function (event) {
+      const healthToggle = event.target.closest(".health-response-toggle");
+      if (healthToggle) {
+        const expanded = healthToggle.getAttribute("aria-expanded") === "true";
+        setHealthResponseExpanded(!expanded);
+        return;
+      }
+
+      const toggle = event.target.closest(".etl-rejected-toggle");
+      if (!toggle) return;
+      const panelId = toggle.getAttribute("aria-controls");
+      const panel = panelId ? document.getElementById(panelId) : null;
+      if (!panel) return;
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
+      panel.hidden = expanded;
+      toggle.textContent = expanded ? "View rejected rows" : "Hide rejected rows";
+    });
+
+    document.getElementById("health-refresh").addEventListener("click", loadHealth);
+    loadHealth();
+
+    document.getElementById("etl-submit").addEventListener("click", async () => {
+      const btn = document.getElementById("etl-submit");
+      const status = document.getElementById("etl-status");
+      const result = document.getElementById("etl-result");
+      const fileInput = document.getElementById("etl-file");
+      clearResult(result);
+
+      if (!fileInput.files || !fileInput.files[0]) {
+        setStatus(status, "error", "Please choose a CSV file.");
+        result.innerHTML = RESULT_PLACEHOLDERS.etl;
+        setClearVisible("etl-clear", true);
+        return;
+      }
+
+      setLoading(btn, true);
+      setStatus(status, "loading", "Uploading and processing CSV…");
+
+      const form = new FormData();
+      form.append("file", fileInput.files[0]);
+
+      try {
+        const response = await fetch(API + "/etl/upload", { method: "POST", body: form });
+        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        const data = await response.json();
+        setStatus(status, "success", "ETL completed — status: " + data.status);
+        renderEtlResult(result, data);
+        setClearVisible("etl-clear", true);
+      } catch (err) {
+        setStatus(status, "error", err.message || String(err));
+        setClearVisible("etl-clear", true);
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+
+    document.getElementById("ex-submit").addEventListener("click", async () => {
+      const btn = document.getElementById("ex-submit");
+      const status = document.getElementById("ex-status");
+      const result = document.getElementById("ex-result");
+      clearResult(result);
+
+      const from = document.getElementById("ex-from").value;
+      const to = document.getElementById("ex-to").value;
+      const amount = document.getElementById("ex-amount").value;
+
+      if (!amount || Number(amount) < 0) {
+        setStatus(status, "error", "Enter a valid amount (≥ 0).");
+        result.innerHTML = RESULT_PLACEHOLDERS.ex;
+        setClearVisible("ex-clear", true);
+        return;
+      }
+
+      setLoading(btn, true);
+      setStatus(status, "loading", "Converting currency…");
+
+      const params = new URLSearchParams({
+        from_currency: from,
+        to_currency: to,
+        amount: amount,
+      });
+
+      try {
+        const response = await fetch(API + "/exchange/convert?" + params);
+        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        const data = await response.json();
+        setStatus(
+          status,
+          "success",
+          data.original_amount + " " + data.from_currency + " → " + data.converted_amount + " " + data.to_currency + " (rate " + data.rate + ")"
+        );
+        renderJson(result, data, "Conversion result");
+        setClearVisible("ex-clear", true);
+      } catch (err) {
+        setStatus(status, "error", err.message || String(err));
+        setClearVisible("ex-clear", true);
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+
+    document.getElementById("scrape-submit").addEventListener("click", async () => {
+      const btn = document.getElementById("scrape-submit");
+      const status = document.getElementById("scrape-status");
+      const result = document.getElementById("scrape-result");
+      clearResult(result);
+
+      const url = document.getElementById("scrape-url").value.trim();
+      if (!url) {
+        setStatus(status, "error", "Please enter a page URL.");
+        result.innerHTML = RESULT_PLACEHOLDERS.scrape;
+        setClearVisible("scrape-clear", true);
+        return;
+      }
+
+      setLoading(btn, true);
+      setStatus(status, "loading", "Scraping page for PDF documents…");
+
+      try {
+        const response = await fetch(API + "/scraping/scrape-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url }),
+        });
+        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        const data = await response.json();
+        const count = data.total_documents ?? (data.documents ? data.documents.length : 0);
+        const errors = data.errors || [];
+        const scrapeFailed =
+          data.status === "failed" || (count === 0 && errors.length > 0);
+        setStatus(
+          status,
+          scrapeFailed ? "error" : "success",
+          "Found " + count + " document(s) — status: " + data.status
+        );
+        renderScrapeResult(result, data);
+        setClearVisible("scrape-clear", true);
+      } catch (err) {
+        setStatus(status, "error", err.message || String(err));
+        setClearVisible("scrape-clear", true);
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+
+    document.getElementById("llm-file").addEventListener("change", async (event) => {
+      const status = document.getElementById("llm-status");
+      const textarea = document.getElementById("llm-text");
+      const file = event.target.files && event.target.files[0];
+
+      if (!file) return;
+
+      if (!file.name.toLowerCase().endsWith(".txt") && file.type && file.type !== "text/plain") {
+        setStatus(status, "error", "Please choose a plain text (.txt) file.");
+        event.target.value = "";
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        textarea.value = text;
+        setStatus(status, "success", 'Loaded "' + file.name + '" (' + text.length + " characters). Click Extract Data.");
+      } catch (err) {
+        setStatus(status, "error", "Could not read file: " + (err.message || String(err)));
+      }
+    });
+
+    document.getElementById("llm-submit").addEventListener("click", async () => {
+      const btn = document.getElementById("llm-submit");
+      const status = document.getElementById("llm-status");
+      const result = document.getElementById("llm-result");
+      clearResult(result);
+
+      const text = document.getElementById("llm-text").value.trim();
+      if (!text) {
+        setStatus(status, "error", "Please paste text or upload a .txt file.");
+        result.innerHTML = RESULT_PLACEHOLDERS.llm;
+        setClearVisible("llm-clear", true);
+        return;
+      }
+
+      setLoading(btn, true);
+      setStatus(status, "loading", "Extracting structured data…");
+
+      try {
+        const payload = { text: text };
+        const selectedModel = getSelectedLlmModel();
+        if (selectedModel) {
+          payload.model = selectedModel;
+        }
+
+        const response = await fetch(API + "/llm/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        const data = await response.json();
+        const modelNote = data.model ? ", model: " + data.model : "";
+        setStatus(
+          status,
+          "success",
+          "Extraction complete — method: " +
+            data.extraction_method +
+            modelNote +
+            ", status: " +
+            data.status
+        );
+        renderLlmResult(result, data);
+        setClearVisible("llm-clear", true);
+      } catch (err) {
+        setStatus(status, "error", err.message || String(err));
+        setClearVisible("llm-clear", true);
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+
+    document.getElementById("etl-clear").addEventListener("click", resetEtlTask);
+    document.getElementById("ex-clear").addEventListener("click", resetExchangeTask);
+    document.getElementById("scrape-clear").addEventListener("click", resetScrapeTask);
+    document.getElementById("llm-clear").addEventListener("click", resetLlmTask);
+
+    const llmModelSelect = document.getElementById("llm-model");
+    if (llmModelSelect) {
+      llmModelSelect.addEventListener("change", updateLlmPowerIndicator);
+      updateLlmPowerIndicator();
+    }
+
+    function setLlmAiSettingsExpanded(expanded) {
+      const toggle = document.getElementById("llm-ai-settings-toggle");
+      const panel = document.getElementById("llm-ai-settings-panel");
+      if (!toggle || !panel) return;
+      panel.classList.toggle("show", expanded);
+      toggle.classList.toggle("collapsed", !expanded);
+      toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    }
+
+    const llmSettingsToggle = document.getElementById("llm-ai-settings-toggle");
+    if (llmSettingsToggle) {
+      llmSettingsToggle.addEventListener("click", function () {
+        const panel = document.getElementById("llm-ai-settings-panel");
+        const expanded = panel && panel.classList.contains("show");
+        setLlmAiSettingsExpanded(!expanded);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Sample URLs for scraping (public pages; 1–2 s delay between requests)
+
+# Official institutions (homepage — may have no PDF links in static HTML)
+https://www.bnb.bg/
+https://www.investor.bg/
+
+# www.minfin.bg/bg/1394 is behind Cloudflare — plain HTTP often returns 403.
+# Ethical options:
+#   1) offline fixture below (demo pipeline + tests)
+#   2) POST /api/v1/scraping/scrape-html with HTML saved from your browser
+#   3) SCRAPING_BROWSER_FALLBACK=true + pip install playwright && playwright install chromium
+# Live page (uncomment when your network passes Cloudflare):
+# https://www.minfin.bg/bg/1394
+
+offline:data/scraping/fixtures/minfin_bg_1394_demo.html|https://www.minfin.bg/bg/1394

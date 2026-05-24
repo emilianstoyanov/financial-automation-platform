@@ -1,0 +1,178 @@
+/* Financial Automation Platform — Swagger UI theme */
+:root {
+  --fap-primary: #2563eb;
+  --fap-primary-dark: #1d4ed8;
+  --fap-primary-darker: #1e3a8a;
+  --fap-primary-light: #eff6ff;
+  --fap-primary-border: #dbeafe;
+  --fap-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
+  --fap-shadow-hover: 0 4px 14px rgba(37, 99, 235, 0.45);
+  --fap-radius: 8px;
+  --fap-font: 14px;
+}
+
+/* ---- Shared button base (Try it out, Reset, Cancel, Execute) ---- */
+.swagger-ui .opblock .btn.try-out__btn,
+.swagger-ui .opblock .execute-wrapper .btn {
+  font-size: var(--fap-font) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+  border-radius: var(--fap-radius) !important;
+  padding: 10px 22px !important;
+  min-height: 42px;
+  line-height: 1.25 !important;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease,
+    border-color 0.2s ease, color 0.2s ease;
+  box-shadow: var(--fap-shadow);
+}
+
+/* Try it out — primary */
+.swagger-ui .opblock .btn.try-out__btn:not(.cancel):not(.reset) {
+  background: linear-gradient(
+    135deg,
+    var(--fap-primary) 0%,
+    var(--fap-primary-dark) 100%
+  ) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.swagger-ui .opblock .btn.try-out__btn:not(.cancel):not(.reset):hover {
+  background: linear-gradient(
+    135deg,
+    var(--fap-primary-dark) 0%,
+    var(--fap-primary-darker) 100%
+  ) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--fap-shadow-hover);
+}
+
+/* Reset — secondary outline */
+.swagger-ui .opblock .btn.try-out__btn.reset {
+  background: #ffffff !important;
+  color: var(--fap-primary-dark) !important;
+  border: 2px solid var(--fap-primary) !important;
+  box-shadow: 0 1px 6px rgba(37, 99, 235, 0.15);
+}
+
+.swagger-ui .opblock .btn.try-out__btn.reset:hover {
+  background: var(--fap-primary-light) !important;
+  border-color: var(--fap-primary-dark) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--fap-shadow);
+}
+
+/* Cancel */
+.swagger-ui .opblock .btn.try-out__btn.cancel {
+  background: #ffffff !important;
+  color: #b91c1c !important;
+  border: 2px solid #f87171 !important;
+  box-shadow: 0 1px 6px rgba(185, 28, 28, 0.12);
+}
+
+.swagger-ui .opblock .btn.try-out__btn.cancel:hover {
+  background: #fef2f2 !important;
+  border-color: #dc2626 !important;
+  transform: translateY(-1px);
+}
+
+/* Execute — primary, full width */
+.swagger-ui .opblock .execute-wrapper {
+  padding: 16px 20px !important;
+}
+
+.swagger-ui .opblock .execute-wrapper .btn {
+  width: 100% !important;
+  max-width: 480px;
+  margin-left: auto;
+  display: block;
+  background: linear-gradient(
+    135deg,
+    var(--fap-primary) 0%,
+    var(--fap-primary-dark) 100%
+  ) !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 12px 28px !important;
+  min-height: 46px;
+}
+
+.swagger-ui .opblock .execute-wrapper .btn:hover {
+  background: linear-gradient(
+    135deg,
+    var(--fap-primary-dark) 0%,
+    var(--fap-primary-darker) 100%
+  ) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--fap-shadow-hover);
+}
+
+/* Button group spacing (Try it out + Reset) */
+.swagger-ui .opblock .try-out.btn-group {
+  gap: 10px;
+  align-items: center;
+}
+
+.swagger-ui .opblock .try-out.btn-group .btn.try-out__btn {
+  margin-left: 0 !important;
+}
+
+/* GET / POST blocks — slightly stronger section header contrast */
+.swagger-ui .opblock.opblock-get .opblock-summary,
+.swagger-ui .opblock.opblock-post .opblock-summary {
+  border-radius: 6px 6px 0 0;
+}
+
+/* ---- CSV file upload (matches primary button style) ---- */
+.swagger-ui .opblock-body input[type="file"] {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  margin-top: 8px;
+  padding: 14px 16px;
+  border: 2px dashed var(--fap-primary);
+  border-radius: 10px;
+  background: var(--fap-primary-light);
+  cursor: pointer;
+  font-size: var(--fap-font);
+  color: var(--fap-primary-darker);
+}
+
+.swagger-ui .opblock-body input[type="file"]:hover {
+  border-color: var(--fap-primary-dark);
+  background: var(--fap-primary-border);
+}
+
+.swagger-ui .opblock-body input[type="file"]::file-selector-button {
+  background: linear-gradient(
+    135deg,
+    var(--fap-primary) 0%,
+    var(--fap-primary-dark) 100%
+  );
+  color: #ffffff;
+  border: none;
+  border-radius: var(--fap-radius);
+  padding: 11px 22px;
+  margin-right: 14px;
+  font-size: var(--fap-font);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: var(--fap-shadow);
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.swagger-ui .opblock-body input[type="file"]::file-selector-button:hover {
+  background: linear-gradient(
+    135deg,
+    var(--fap-primary-dark) 0%,
+    var(--fap-primary-darker) 100%
+  );
+  transform: translateY(-1px);
+  box-shadow: var(--fap-shadow-hover);
+}
+
+.swagger-ui .opblock-body input[type="file"]::file-selector-button:active {
+  transform: translateY(0);
+}
