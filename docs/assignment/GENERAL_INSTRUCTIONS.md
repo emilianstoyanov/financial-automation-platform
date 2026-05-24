@@ -77,7 +77,3 @@ Responsibilities:
 **DON'T:**
 - Don't neglect error handling
 - Don't hardcode
-
----
-
-Dynamo Software (DDA Department)

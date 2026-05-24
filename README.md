@@ -454,4 +454,4 @@ For production, consider PostgreSQL (`DATABASE_URL`) instead of SQLite.
 
 ## License
 
-Internal / interview project — Dynamo Software (DDA Department).
+Internal / personal project.
