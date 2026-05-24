@@ -3,10 +3,12 @@ fastapi>=0.115.0,<1.0.0
 uvicorn[standard]>=0.32.0,<1.0.0
 python-multipart>=0.0.9,<1.0.0
 jinja2>=3.1.0,<4.0.0
+gunicorn>=23.0.0,<24.0.0
 
 # Settings & validation
 pydantic>=2.9.0,<3.0.0
 pydantic-settings>=2.6.0,<3.0.0
+python-dotenv>=1.0.0,<2.0.0
 
 # Database
 sqlalchemy>=2.0.36,<3.0.0
@@ -24,18 +26,6 @@ lxml>=4.9.0,<6.0.0
 PyPDF2>=3.0.0,<4.0.0
 curl_cffi>=0.15.0,<1.0.0
 playwright>=1.49.0,<2.0.0
-# After pip install, run once: playwright install chromium
 
 # LLM extraction (Task 4)
 openai>=1.54.0,<2.0.0
-
-# Environment
-python-dotenv>=1.0.0,<2.0.0
-
-# Production server (Heroku)
-gunicorn>=23.0.0,<24.0.0
-
-# Testing
-pytest>=8.3.0,<9.0.0
-pytest-asyncio>=0.24.0,<1.0.0
-httpx>=0.27.0,<1.0.0
