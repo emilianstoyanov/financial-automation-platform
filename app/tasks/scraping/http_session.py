@@ -4,6 +4,33 @@ import requests
 from urllib.parse import urlparse
 from app.tasks.scraping.constants import USER_AGENT
 
+_GENERIC_HTTP_ENCODINGS = frozenset(
+    {
+        "iso-8859-1",
+        "latin-1",
+        "latin1",
+        "ascii",
+        "us-ascii",
+    }
+)
+
+
+def decode_response_text(response: requests.Response) -> str:
+    """Decode an HTTP body as Unicode, using apparent_encoding when charset is missing or generic."""
+    content = response.content
+    if not isinstance(content, (bytes, bytearray)) or not content:
+        text = response.text
+        return text if isinstance(text, str) else ""
+
+    encoding = response.encoding
+    normalized = (encoding or "").lower().replace("_", "-")
+    if not encoding or normalized in _GENERIC_HTTP_ENCODINGS:
+        apparent = getattr(response, "apparent_encoding", None)
+        encoding = apparent or "utf-8"
+    if not encoding:
+        encoding = "utf-8"
+    return bytes(content).decode(encoding, errors="replace")
+
 DEFAULT_ACCEPT = (
     "text/html,application/xhtml+xml,application/xml;q=0.9,"
     "image/avif,image/webp,image/apng,*/*;q=0.8"

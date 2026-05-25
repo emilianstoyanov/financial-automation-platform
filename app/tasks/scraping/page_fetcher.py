@@ -6,7 +6,7 @@ import logging
 import requests
 from typing import TYPE_CHECKING
 from app.tasks.scraping.exceptions import ScrapingPageError
-from app.tasks.scraping.http_session import build_browser_headers
+from app.tasks.scraping.http_session import build_browser_headers, decode_response_text
 from app.tasks.scraping.cloudflare import cloudflare_blocked_message, is_cloudflare_challenge
 from app.tasks.scraping.constants import (
     PLAYWRIGHT_NAVIGATION_TIMEOUT_MS,
@@ -51,10 +51,12 @@ class PageFetcher:
         except requests.RequestException as exc:
             raise ScrapingPageError(f"Page request failed: {exc}") from exc
 
+        html = decode_response_text(response)
+        error_body = html
         if response.status_code < 400 and not is_cloudflare_challenge(
-                response.status_code, response.text, dict(response.headers)
+                response.status_code, html, dict(response.headers)
         ):
-            return response.text
+            return html
 
         if self._use_curl:
             html = self._fetch_curl(page_url, referer)
@@ -72,7 +74,7 @@ class PageFetcher:
             if html:
                 return html
         elif is_cloudflare_challenge(
-                response.status_code, response.text, dict(response.headers)
+                response.status_code, error_body, dict(response.headers)
         ):
             logger.warning(
                 "Protected page detected but SCRAPING_BROWSER_FALLBACK is false — "
@@ -82,7 +84,7 @@ class PageFetcher:
         self._raise_for_response(
             page_url,
             response.status_code,
-            response.text,
+            error_body,
             response.headers,
             browser_fallback_enabled=self._use_browser,
             browser_fallback_tried=browser_tried,
@@ -138,11 +140,12 @@ class PageFetcher:
             logger.warning("curl_cffi fetch failed for %s: %s", page_url, exc)
             return None
 
+        html = decode_response_text(response)
         if response.status_code < 400 and not is_cloudflare_challenge(
-                response.status_code, response.text, dict(response.headers)
+                response.status_code, html, dict(response.headers)
         ):
             logger.info("Fetched %s via curl_cffi impersonation", page_url)
-            return response.text
+            return html
         return None
 
     def _fetch_playwright(self, page_url: str, referer: str | None = None) -> str | None:

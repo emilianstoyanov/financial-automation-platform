@@ -1,8 +1,10 @@
 """Unit tests for scraping parser helpers."""
 
 import pytest
+import requests
 
 from app.tasks.scraping.exceptions import ScrapingInvalidURLError
+from app.tasks.scraping.http_session import decode_response_text
 from app.tasks.scraping.parsers import (
     extract_date_near_link,
     extract_link_title,
@@ -108,6 +110,25 @@ def test_find_pdf_links_finds_absolute_and_relative(tmp_path):
     assert "https://example.com/docs/report.pdf" in urls
     assert "https://cdn.example.com/other.pdf" in urls
     assert len(urls) == 3
+
+
+def test_decode_response_text_preserves_bulgarian_pdf_title():
+    """UTF-8 Cyrillic titles survive when the server omits charset (requests defaults to ISO-8859-1)."""
+    title = "Закон за платежните услуги и платежните системи"
+    html = (
+        f'<html><body><a href="/bnbweb/groups/public/documents/law.pdf">{title}</a>'
+        "</body></html>"
+    )
+    response = requests.Response()
+    response._content = html.encode("utf-8")
+    response.encoding = "ISO-8859-1"
+    response.status_code = 200
+    response.headers["Content-Type"] = "text/html"
+
+    decoded = decode_response_text(response)
+    links = find_pdf_links(decoded, "https://www.bnb.bg/RegistersAndServices/index.htm")
+    assert len(links) == 1
+    assert links[0].title == title
 
 
 def test_extract_link_title_uses_text_or_filename():
