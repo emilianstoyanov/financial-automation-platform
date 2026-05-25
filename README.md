@@ -1,154 +1,101 @@
 # Financial Automation Platform
 
-A **FastAPI** backend that automates common financial data workflows: clean CSV data (ETL), fetch exchange rates, scrape public documents, and extract structured fields from unstructured text with an LLM (or local mock rules).
+FastAPI backend for financial data workflows: CSV ETL, live exchange rates, document scraping, and LLM (or mock) field extraction.
 
-This README is written for someone **new to the repo** — no prior context required.
+**Contents**
+
+- [Live Demo](#live-demo)
+- [What is included](#what-is-included)
+- [Run locally](#run-locally)
+- [API overview](#api-overview)
+- [Tasks](#task-1--etl-pipeline)
+- [Tests](#tests)
+- [Deployment](#deployment)
+- [Project structure](#project-structure)
 
 ---
 
-## Table of contents
+## Live Demo
 
-1. [What is included](#what-is-included)
-2. [First-time setup](#first-time-setup)
-3. [Start the server](#start-the-server)
-4. [Try it in the browser (Swagger)](#try-it-in-the-browser-swagger)
-5. [Where output files are saved](#where-output-files-are-saved)
-6. [API overview](#api-overview)
-7. [Task 1 — ETL Pipeline](#task-1--etl-pipeline)
-8. [Task 2 — Exchange Rates](#task-2--exchange-rates)
-9. [Task 3 — Document Scraping](#task-3--document-scraping)
-10. [Task 4 — LLM Data Extraction](#task-4--llm-data-extraction)
-11. [Configuration](#configuration)
-12. [Project structure](#project-structure)
-13. [Run all tests](#run-all-tests)
-14. [Deploy to Heroku](#deploy-to-heroku)
-15. [Further reading](#further-reading)
+Production is deployed on **Heroku** and is ready to test in the browser.
+
+No local setup or API keys are required for the live demo. The production environment is already configured for the available demo features, including LLM extraction.
+
+| Resource | URL |
+|----------|-----|
+| App / dashboard | https://www.financial-automation-platform.xyz/ |
+| Swagger | https://www.financial-automation-platform.xyz/docs |
+| ReDoc | https://www.financial-automation-platform.xyz/redoc |
+| Health check | https://www.financial-automation-platform.xyz/api/v1/health |
 
 ---
 
 ## What is included
 
-| Task | Purpose | Main output on disk |
-|------|---------|---------------------|
-| **1 — ETL** | Clean messy financial CSV (dates, numbers, duplicates) and convert amounts to BGN | `data/etl/output_clean_data.json`, `data/etl/data_quality_report.txt` |
-| **2 — Exchange** | Live EUR / USD / GBP rates vs BGN (cached 1 hour) | `data/exchange/cache.json` |
-| **3 — Scraping** | Find PDFs on web pages, download, extract metadata + text preview | `data/scraping/extracted_documents.json` |
-| **4 — LLM** | Extract company, date, amounts, currencies, metrics from text | `data/llm/extracted_data.json`, `data/llm/comparison_report.md` |
+| Task | Purpose | Main output |
+|------|---------|-------------|
+| **1 — ETL** | Clean financial CSV; convert to BGN | `data/etl/output_clean_data.json`, `data/etl/data_quality_report.txt` |
+| **2 — Exchange** | EUR / USD / GBP vs BGN (1h cache) | `data/exchange/cache.json` |
+| **3 — Scraping** | PDF discovery, download, metadata + text preview | `data/scraping/extracted_documents.json` |
+| **4 — LLM** | Structured fields from unstructured text | `data/llm/extracted_data.json`, `data/llm/comparison_report.md` |
 
-Original assignment specs live under `docs/assignment/`.
+Assignment specs: `docs/assignment/`.
 
 ---
 
-## First-time setup
+## Run locally
 
-You need **Python 3.11+** and a terminal opened in the project root (`financial-automation-platform/`).
-
-### Step 1 — Virtual environment
-
-**Windows (PowerShell):**
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-**Linux / macOS:**
+**Requirements:** Python 3.11+
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+git clone https://github.com/emilianstoyanov/financial-automation-platform.git
+cd financial-automation-platform
+python -m venv .venv
 ```
 
-### Step 2 — Install dependencies
+**Activate venv**
+
+| OS | Command |
+|----|---------|
+| Windows (PowerShell) | `.venv\Scripts\Activate.ps1` |
+| Linux / macOS | `source .venv/bin/activate` |
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Optional (Task 3 only)** — headless browser fallback for sites that block plain HTTP:
+**Environment** — copy `.env.example` to `.env`:
 
-```bash
-playwright install chromium
-```
-
-### Step 3 — Environment file
-
-Copy the example env file and edit if needed:
-
-**Windows:**
-
-```powershell
-copy .env.example .env
-```
-
-**Linux / macOS:**
-
-```bash
-cp .env.example .env
-```
+| OS | Command |
+|----|---------|
+| Windows | `copy .env.example .env` |
+| Linux / macOS | `cp .env.example .env` |
 
 | Variable | Required? | Notes |
 |----------|-----------|--------|
-| *(none for basic demo)* | | ETL, exchange, scraping (without browser), and LLM **mock** work out of the box |
-| `OPENAI_API_KEY` | Optional | Task 4 live OpenAI extraction; without it, deterministic **mock** rules are used |
-| `SCRAPING_BROWSER_FALLBACK=true` | Optional | Task 3 Playwright fallback after `requests` fails |
-| `EXCHANGE_RATE_API_URL` | Optional | Default points to Exchangerate-API (no API key) |
+| *(none for basic demo)* | | ETL, exchange, scraping, and LLM **mock mode** work without keys locally |
+| `OPENAI_API_KEY` | Optional | Task 4 live OpenAI; otherwise deterministic **mock** |
+| `SCRAPING_BROWSER_FALLBACK` | Optional | Task 3 Playwright after `requests` fails (`playwright install chromium`) |
+| `EXCHANGE_RATE_API_URL` | Optional | Default: Exchangerate-API (no key) |
 
-> **Note:** Runtime files under `data/` and `logs/` are **not committed to git** (see `.gitignore`). After setup you only see empty folders with `.gitkeep` until you call the APIs below.
-
----
-
-## Start the server
-
-With the virtual environment active:
+**Start server**
 
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-On startup the app will:
+Startup creates `data/*`, `logs/`, and SQLite at `data/financial_data.db`. Tasks run only via API — not on boot.
 
-- Create folder tree: `data/etl`, `data/exchange`, `data/scraping`, `data/llm`, `logs`
-- Initialize SQLite at `data/financial_data.db`
-- **Not** run ETL, scraping, or LLM jobs automatically — you trigger those via API
+### Open the app
 
----
+| Environment | Dashboard | Swagger | ReDoc |
+|-------------|-----------|---------|-------|
+| **Production** | https://www.financial-automation-platform.xyz/ | `/docs` | `/redoc` |
+| **Local** | http://localhost:8000/ | http://localhost:8000/docs | http://localhost:8000/redoc |
 
-## Try it in the browser (Swagger)
+Health: `curl http://localhost:8000/api/v1/health` (production: `/api/v1/health` on the host above).
 
-1. Open **[http://localhost:8000/](http://localhost:8000/)** — local **dashboard** (ETL, exchange, scraping, LLM forms).
-2. Or open **[http://localhost:8000/docs](http://localhost:8000/docs)** (Swagger UI).
-3. Expand a section (**ETL**, **Exchange**, **Scraping**, **LLM**).
-4. Click **Try it out** → **Execute**.
-5. Read the JSON response; for tasks that persist files, check the paths in [Where output files are saved](#where-output-files-are-saved).
-
-Quick health check:
-
-```bash
-curl http://localhost:8000/api/v1/health
-```
-
-Alternative API docs: **[http://localhost:8000/redoc](http://localhost:8000/redoc)**
-
----
-
-## Where output files are saved
-
-Understanding **when** files appear avoids confusion.
-
-| Path | Created when | Not created when |
-|------|----------------|------------------|
-| `data/etl/output_clean_data.json` | `POST /api/v1/etl/process-local-file` or `POST /api/v1/etl/upload` | Server start only |
-| `data/etl/data_quality_report.txt` | Same ETL endpoints | Server start only |
-| `data/exchange/cache.json` | First `GET /api/v1/exchange/rates` or `convert` (then refreshed hourly) | Server start only |
-| `data/scraping/extracted_documents.json` | Scraping endpoints (see Task 3) | Server start only |
-| `data/llm/extracted_data.json` | `GET /api/v1/llm/process-sample-documents` | Server start; **`POST /llm/extract` does not write here** |
-| `data/llm/comparison_report.md` | `GET /api/v1/llm/process-sample-documents` | Server start; **`POST /llm/extract` does not write here** |
-| `logs/scraping.log` | Task 3 scraping runs | — |
-| `logs/llm.log` | Task 4 batch run (`process-sample-documents`) | — |
-| `logs/app.log` | General app logging (if configured) | — |
-
-**Task 4 — important:** Pasting custom text in Swagger under `POST /api/v1/llm/extract` returns JSON in the **HTTP response only**. To save results to disk, use `GET /api/v1/llm/process-sample-documents` (processes the three assignment sample files).
+> `data/` and `logs/` are gitignored; folders exist with `.gitkeep` until APIs run.
 
 ---
 
@@ -156,64 +103,50 @@ Understanding **when** files appear avoids confusion.
 
 | Method | Endpoint | Writes files? |
 |--------|----------|---------------|
-| `GET` | `/` | No — local dashboard UI |
+| `GET` | `/` | No — dashboard |
 | `GET` | `/api/v1/health` | No |
-| `POST` | `/api/v1/etl/process-local-file` | Yes — ETL outputs |
-| `POST` | `/api/v1/etl/upload` | Yes — ETL outputs |
+| `POST` | `/api/v1/etl/process-local-file` | Yes |
+| `POST` | `/api/v1/etl/upload` | Yes |
 | `GET` | `/api/v1/exchange/rates` | Yes — cache |
-| `GET` | `/api/v1/exchange/convert` | Yes — cache (on miss) |
-| `GET` | `/api/v1/scraping/process-local-urls` | Yes — scraping JSON |
-| `POST` | `/api/v1/scraping/scrape-url` | Yes — scraping JSON |
-| `POST` | `/api/v1/scraping/scrape-html` | Yes — scraping JSON |
-| `GET` | `/api/v1/llm/process-sample-documents` | Yes — LLM JSON + report |
+| `GET` | `/api/v1/exchange/convert` | Yes — cache on miss |
+| `GET` | `/api/v1/scraping/process-local-urls` | Yes |
+| `POST` | `/api/v1/scraping/scrape-url` | Yes |
+| `POST` | `/api/v1/scraping/scrape-html` | Yes |
+| `GET` | `/api/v1/llm/process-sample-documents` | Yes |
 | `POST` | `/api/v1/llm/extract` | **No** — response only |
-| `GET` | `/docs` | Swagger UI |
-| `GET` | `/redoc` | ReDoc |
+| `GET` | `/docs`, `/redoc` | No |
+
+---
+
+## Where output files are saved
+
+| Path | Created by |
+|------|------------|
+| `data/etl/output_clean_data.json`, `data/etl/data_quality_report.txt` | ETL endpoints |
+| `data/exchange/cache.json` | First exchange call; refreshed hourly |
+| `data/scraping/extracted_documents.json` | Scraping endpoints |
+| `data/llm/extracted_data.json`, `data/llm/comparison_report.md` | `GET /llm/process-sample-documents` only |
+| `logs/scraping.log` | Task 3 |
+| `logs/llm.log` | Task 4 batch |
+| `logs/app.log` | App logging |
+
+`POST /api/v1/llm/extract` returns JSON in the response only — use the batch endpoint to persist LLM output.
 
 ---
 
 ## Task 1 — ETL Pipeline
 
-Cleans financial CSV data (dates, numbers, duplicates), converts amounts to BGN, and writes a JSON dataset plus a quality report.
+**Purpose:** Clean CSV (dates, numbers, duplicates); convert amounts to BGN; quality report.
 
-### Input
-
-| Item | Path |
-|------|------|
-| Default sample CSV | `data/etl/dirty_financial_data.csv` |
-| Assignment copy | `docs/assignment/Task_1_ETL_Pipeline/dirty_financial_data.csv` |
-
-**Required columns:** `date`, `company_id`, `revenue`, `expenses`, `currency`, `category`
-
-### Run (Swagger or curl)
-
-| Method | Endpoint | Use case |
-|--------|----------|----------|
-| `POST` | `/api/v1/etl/process-local-file` | Process the repo sample file |
-| `POST` | `/api/v1/etl/upload` | Upload your own `.csv` (multipart form) |
+| | |
+|--|--|
+| **Endpoints** | `POST /api/v1/etl/process-local-file`, `POST /api/v1/etl/upload` |
+| **Input** | Default: `data/etl/dirty_financial_data.csv`. Columns: `date`, `company_id`, `revenue`, `expenses`, `currency`, `category` |
+| **Output** | `data/etl/output_clean_data.json`, `data/etl/data_quality_report.txt` |
+| **FX (ETL)** | EUR 1.96 · USD 1.80 · GBP 2.30 · BGN 1.00 |
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/etl/process-local-file
-```
-
-```bash
-curl -X POST http://localhost:8000/api/v1/etl/upload -F "file=@path/to/your.csv"
-```
-
-Response includes `status`, `quality_report`, and `preview` (first 10 cleaned rows).
-
-### Output
-
-| File | Description |
-|------|-------------|
-| `data/etl/output_clean_data.json` | Cleaned records (amounts in BGN, `profit` calculated) |
-| `data/etl/data_quality_report.txt` | Counts: removed rows, duplicates, invalid dates/numbers, etc. |
-
-Fixed FX rates used in ETL: EUR **1.96** · USD **1.80** · GBP **2.30** · BGN **1.00**.
-
-### Tests
-
-```bash
 pytest tests/tasks/test_etl_task1.py tests/api/test_etl.py
 ```
 
@@ -223,27 +156,17 @@ Spec: `docs/assignment/Task_1_ETL_Pipeline/README.md`
 
 ## Task 2 — Exchange Rates
 
-Fetches live EUR / USD / GBP rates against BGN via [Exchangerate-API](https://www.exchangerate-api.com/) (no API key). Results are cached for **one hour** in `data/exchange/cache.json`.
+**Purpose:** Live EUR / USD / GBP vs BGN ([Exchangerate-API](https://www.exchangerate-api.com/)); 1-hour cache.
 
-### Examples
-
-**Rates** (BGN per 1 unit of foreign currency):
+| | |
+|--|--|
+| **Endpoints** | `GET /api/v1/exchange/rates`, `GET /api/v1/exchange/convert?from_currency=&to_currency=&amount=` |
+| **Input** | Query params for convert; currencies: `BGN`, `EUR`, `USD`, `GBP` |
+| **Output** | JSON response + `data/exchange/cache.json` |
 
 ```bash
 curl http://localhost:8000/api/v1/exchange/rates
-```
-
-**Convert** — supported: `BGN`, `EUR`, `USD`, `GBP`:
-
-```bash
 curl "http://localhost:8000/api/v1/exchange/convert?from_currency=EUR&to_currency=BGN&amount=100"
-```
-
-Or use the **Exchange** section in [Swagger](http://localhost:8000/docs).
-
-### Tests
-
-```bash
 pytest tests/tasks/test_exchange_client.py tests/api/test_exchange.py
 ```
 
@@ -253,52 +176,22 @@ Spec: `docs/assignment/Task_2_API_Integration/README.md`
 
 ## Task 3 — Document Scraping
 
-Discovers PDF links on public pages (up to 20 per page), downloads files, extracts metadata and a **500-character** text preview, and appends results to JSON. Failed URLs are logged without stopping the whole batch.
+**Purpose:** Find PDFs on pages (up to 20), download, extract metadata and 500-char preview; append to JSON.
 
-### Files
-
-| Item | Path |
-|------|------|
-| URL list | `data/scraping/sample_urls.txt` |
-| Offline HTML fixture (demo) | `data/scraping/fixtures/minfin_bg_1394_demo.html` |
-| Output | `data/scraping/extracted_documents.json` |
-| Log | `logs/scraping.log` |
-
-### Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/scraping/process-local-urls` | Scrape all URLs from `sample_urls.txt` |
-| `POST` | `/api/v1/scraping/scrape-url` | Scrape one page URL |
-| `POST` | `/api/v1/scraping/scrape-html` | Scrape from browser-saved HTML (e.g. after Cloudflare) |
+| | |
+|--|--|
+| **Endpoints** | `GET /api/v1/scraping/process-local-urls`, `POST /api/v1/scraping/scrape-url`, `POST /api/v1/scraping/scrape-html` |
+| **Input** | `data/scraping/sample_urls.txt`, single URL JSON, or saved HTML |
+| **Output** | `data/scraping/extracted_documents.json`, `logs/scraping.log` |
 
 ```bash
 curl http://localhost:8000/api/v1/scraping/process-local-urls
-```
-
-```bash
-curl -X POST http://localhost:8000/api/v1/scraping/scrape-url \
-  -H "Content-Type: application/json" \
-  -d "{\"url\": \"https://www.nsi.bg/pages/informacionna-sistema-biznes-cikli-97\"}"
-```
-
-### Cloudflare / blocked sites
-
-Some hosts (e.g. `www.minfin.bg`) return **403** to simple bots. The scraper records the error in JSON and `logs/scraping.log` without crashing.
-
-**Options:**
-
-1. **`POST /scrape-html`** — save the page HTML in the browser, paste or upload content.
-2. **Offline URL** in `sample_urls.txt` — e.g. `offline:data/scraping/fixtures/minfin_bg_1394_demo.html`
-3. **Playwright fallback** — in `.env` set `SCRAPING_BROWSER_FALLBACK=true` and run `playwright install chromium`. Uses headless Chromium with `bg-BG` locale after `requests` fails. Does **not** bypass CAPTCHAs or WAF challenges.
-
-### Tests
-
-```bash
 pytest tests/tasks/test_scraping_parsers.py tests/tasks/test_scraping_scraper.py \
   tests/tasks/test_scraping_task3.py tests/tasks/test_scraping_page_fetcher.py \
   tests/tasks/test_scraping_cloudflare.py tests/api/test_scraping.py
 ```
+
+**Blocking / Cloudflare:** The scraper does not bypass protection; failures are logged in JSON and `logs/scraping.log`. Use `POST /scrape-html`, direct PDF URLs, offline fixture (`offline:data/scraping/fixtures/minfin_bg_1394_demo.html`), or optional Playwright (`SCRAPING_BROWSER_FALLBACK=true`, `playwright install chromium`) — no CAPTCHA/WAF bypass.
 
 Spec: `docs/assignment/Task_3_Document_Scraping/README.md`
 
@@ -306,149 +199,107 @@ Spec: `docs/assignment/Task_3_Document_Scraping/README.md`
 
 ## Task 4 — LLM Data Extraction
 
-Extracts structured financial fields from unstructured text:
+**Purpose:** Extract `company_name`, `document_date`, `total_amount`, `currency`, categories, `financial_metrics`, and unit normalization fields from text.
 
-- `company_name`, `document_date`, `total_amount`, `currency`, `expense_or_income_category`
-- `financial_metrics` (document-specific numbers)
-- Unit metadata: `original_amount_text`, `original_unit`, `normalized_amount`, `normalization_note`
-- Mixed currencies: `primary_currency`, `detected_currencies` (with a **non-fatal** validation warning when multiple currencies appear)
+| | |
+|--|--|
+| **Endpoints** | `GET /api/v1/llm/process-sample-documents` (writes files), `POST /api/v1/llm/extract` (response only) |
+| **Input** | Batch: `docs/assignment/Task_4_LLM_Data_Extraction/sample_documents/*.txt`; ad-hoc: JSON `{"text": "..."}` |
+| **Output** | Batch → `data/llm/extracted_data.json`, `data/llm/comparison_report.md`, `logs/llm.log` |
 
-**Extraction engine:**
-
-| Mode | When | `extraction_method` in output |
-|------|------|-------------------------------|
-| **OpenAI** | `OPENAI_API_KEY` set in `.env` | `openai` |
-| **Mock** | No API key | `mock` (deterministic rules for sample documents) |
-
-A **traditional regex** extractor always runs in parallel for the sample batch; differences are summarized in `comparison_report.md`.
-
-### Sample input (assignment)
-
-| File | Content hint |
-|------|----------------|
-| `docs/assignment/Task_4_LLM_Data_Extraction/sample_documents/invoice.txt` | Absolute EUR invoice |
-| `.../financial_table.txt` | Amounts in **thousands of EUR** (normalized ×1,000) |
-| `.../report_excerpt.txt` | **Mixed EUR + BGN** (revenue in EUR, net profit in BGN) |
-
-### Endpoints
-
-**Batch — writes files** (`data/llm/extracted_data.json`, `data/llm/comparison_report.md`, `logs/llm.log`):
+**Engine:** **OpenAI** when `OPENAI_API_KEY` is set (`extraction_method: openai`); otherwise deterministic **mock** rules (`mock`). Sample batch also runs regex comparison in `comparison_report.md`.
 
 ```bash
 curl http://localhost:8000/api/v1/llm/process-sample-documents
-```
-
-**Ad-hoc text — response only, no file write:**
-
-```bash
-curl -X POST http://localhost:8000/api/v1/llm/extract \
-  -H "Content-Type: application/json" \
-  -d "{\"text\": \"Company: TechnoSoft Ltd\\nDate: 15.03.2024\\nTOTAL AMOUNT DUE: 5916.60 EUR\"}"
-```
-
-In Swagger: **LLM** → `POST /api/v1/llm/extract` → paste text in the `text` field → **Execute**. Result appears in the response body only.
-
-### Output files (after batch endpoint)
-
-| File | Description |
-|------|-------------|
-| `data/llm/extracted_data.json` | All sample documents + metadata (`extraction_method`, validation, normalization fields) |
-| `data/llm/comparison_report.md` | LLM/mock vs traditional regex; notes on unit scaling and mixed currencies |
-| `logs/llm.log` | Processing log |
-
-### Normalization examples (batch)
-
-| Document | Raw unit | Normalized `total_amount` (EUR) |
-|----------|----------|----------------------------------|
-| `financial_table.txt` | thousands (`848.0 k`) | `848000` |
-| `report_excerpt.txt` | millions (revenue) | `12500000` (+ `net_profit_bgn` kept separately in metrics) |
-
-### Tests
-
-```bash
 pytest tests/tasks/test_llm_normalizer.py tests/tasks/test_llm_extractor.py tests/api/test_llm.py
 ```
 
 Spec: `docs/assignment/Task_4_LLM_Data_Extraction/README.md`
 
----
-
-## Configuration
-
-Settings load from `.env` (see `.env.example`). Main variables:
-
-| Variable | Default | Task |
-|----------|---------|------|
-| `DATABASE_URL` | `sqlite:///./data/financial_data.db` | App |
-| `ENVIRONMENT` | `development` | App |
-| `LOG_LEVEL` | `INFO` | App |
-| `OPENAPI_ENABLED` | `true` | Docs at `/docs` |
-| `EXCHANGE_RATE_API_URL` | Exchangerate-API BGN endpoint | 2 |
-| `SCRAPING_BROWSER_FALLBACK` | `false` | 3 |
-| `OPENAI_API_KEY` | *(unset)* | 4 |
-| `OPENAI_MODEL` | `gpt-4o-mini` | 4 |
+**Config (`.env`):** `DATABASE_URL`, `ENVIRONMENT`, `LOG_LEVEL`, `OPENAPI_ENABLED`, `EXCHANGE_RATE_API_URL`, `SCRAPING_BROWSER_FALLBACK`, `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-4o-mini`). See `.env.example`.
 
 ---
 
-## Project structure
-
-```
-app/
-  api/v1/           # HTTP routes (etl, exchange, scraping, llm, health)
-  core/             # Config, database, logging, data directory setup
-  schemas/          # Pydantic request/response models
-  services/         # Thin facades over task modules
-  tasks/
-    etl/            # Task 1 pipeline
-    exchange/       # Task 2 API client + cache
-    scraping/       # Task 3 scraper, PDF extract, parsers
-    llm/            # Task 4 extractors, normalizer, comparison
-  main.py           # FastAPI app factory
-tests/              # Pytest (mirrors tasks + api)
-data/               # Runtime outputs (gitignored except .gitkeep)
-  etl/
-  exchange/
-  scraping/
-  llm/
-docs/
-  assignment/       # Original task descriptions + sample inputs
-  ARCHITECTURE.md   # High-level design notes
-logs/               # Task and app logs (gitignored)
-```
-
----
-
-## Run all tests
+## Tests
 
 ```bash
 pytest
 ```
 
-Expected: full suite green (ETL, exchange, scraping, LLM, API).
+Covers ETL, exchange, scraping, LLM, and API routes.
 
 ---
 
-## Deploy to Heroku
+## Deployment
+
+**Production (Heroku):** https://www.financial-automation-platform.xyz/
+
+Redeploy:
 
 ```bash
-heroku create your-app-name
 heroku config:set ENVIRONMENT=production DEBUG=false
 git push heroku main
 ```
 
-Uses `Procfile` (Gunicorn + Uvicorn workers) and `runtime.txt` (Python 3.11).
-
-For production, consider PostgreSQL (`DATABASE_URL`) instead of SQLite.
+Uses `Procfile` (Gunicorn + Uvicorn) and `runtime.txt` (Python 3.11). For new apps: `heroku create your-app-name` then push. Consider PostgreSQL (`DATABASE_URL`) in production instead of SQLite.
 
 ---
 
-## Further reading
+## Project structure
 
-| Document | Content |
-|----------|---------|
-| `docs/ARCHITECTURE.md` | Layers, data folders, extension points |
-| `docs/assignment/GENERAL_INSTRUCTIONS.md` | Assignment overview |
-| `docs/assignment/Task_*` | Per-task requirements |
+**Flow:** HTTP (`api`, `web`) → `services` → `tasks` (+ `repositories` / SQLite when needed).
+
+```
+financial-automation-platform/
+├── app/                         # FastAPI application
+│   ├── main.py                  # App factory, lifespan, router mount
+│   ├── api/
+│   │   ├── router.py            # Aggregates v1 API routers
+│   │   ├── deps.py              # Shared FastAPI dependencies
+│   │   └── v1/                  # REST: health, etl, exchange, scraping, llm
+│   ├── web/                     # Dashboard routes (HTML UI at /)
+│   ├── templates/               # Jinja templates (dashboard.html)
+│   ├── static/                  # Dashboard CSS, Swagger UI assets, favicon
+│   ├── core/                    # config, database, logging, data_dirs, OpenAPI
+│   ├── schemas/                 # Pydantic request/response models
+│   ├── services/                # Orchestration over task modules
+│   ├── repositories/            # Data access layer (SQLAlchemy)
+│   ├── models/                  # ORM models
+│   └── tasks/                   # Task implementations (assignment modules)
+│       ├── etl/                 # Task 1 — CSV clean, transform, report
+│       ├── exchange/            # Task 2 — live rates + file cache
+│       ├── scraping/            # Task 3 — fetch, parse, PDF extract
+│       └── llm/                 # Task 4 — OpenAI/mock extract, compare
+├── tests/
+│   ├── api/                     # Route tests (etl, exchange, scraping, llm, health, dashboard)
+│   ├── tasks/                   # Unit/integration tests per task package
+│   └── conftest.py
+├── data/                        # Runtime outputs (gitignored; created on startup)
+│   ├── etl/                     # Input CSV, cleaned JSON, quality report
+│   ├── exchange/                # Rate cache
+│   ├── scraping/                # URL list, fixtures, extracted_documents.json
+│   ├── llm/                     # extracted_data.json, comparison_report.md
+│   └── financial_data.db        # SQLite (local / default deploy)
+├── docs/
+│   ├── ARCHITECTURE.md          # Layers, design notes
+│   └── assignment/              # Task_1 … Task_5 specs and sample inputs
+├── logs/                        # app.log, scraping.log, llm.log (gitignored)
+├── Procfile                     # Heroku: Gunicorn + Uvicorn workers
+├── runtime.txt                  # Python 3.11
+├── requirements.txt
+├── pytest.ini
+└── .env.example
+```
+
+| Layer | Role |
+|-------|------|
+| `api/v1` | JSON API and OpenAPI (`/docs`, `/redoc`) |
+| `web` + `templates` + `static` | Browser dashboard at `/` |
+| `services` | Calls `tasks/*`; shapes API responses |
+| `tasks/*` | Core logic for each assignment task |
+| `data/*` | Files written by ETL, exchange, scraping, LLM endpoints |
+
+Further reading: `docs/ARCHITECTURE.md`, `docs/assignment/GENERAL_INSTRUCTIONS.md`.
 
 ---
 
