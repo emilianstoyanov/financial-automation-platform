@@ -1,6 +1,9 @@
 """Pytest fixtures."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
+import app.models  # noqa: F401 — register ORM models for metadata
 from app.main import create_app
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -36,17 +39,23 @@ def db_session(db_engine):
 @pytest.fixture
 def client(db_session):
     """FastAPI test client with overridden database dependency."""
-    app = create_app()
+    mock_scheduler = MagicMock()
 
-    def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
+    with (
+        patch("app.main.NewsRefreshScheduler", return_value=mock_scheduler),
+        patch("app.main.RatesRefreshScheduler", return_value=mock_scheduler),
+    ):
+        app = create_app()
 
-    app.dependency_overrides[get_db] = override_get_db
+        def override_get_db():
+            try:
+                yield db_session
+            finally:
+                pass
 
-    with TestClient(app) as test_client:
-        yield test_client
+        app.dependency_overrides[get_db] = override_get_db
 
-    app.dependency_overrides.clear()
+        with TestClient(app) as test_client:
+            yield test_client
+
+        app.dependency_overrides.clear()

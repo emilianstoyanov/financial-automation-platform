@@ -72,7 +72,7 @@ def session_scope() -> Generator[Session, None, None]:
 def init_db() -> None:
     """Create database tables from registered models."""
     from app.core.data_dirs import DATA_DIR
+    import app.models  # noqa: F401 — register ORM tables
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    # Import models here when they exist so metadata is populated
     Base.metadata.create_all(bind=engine)

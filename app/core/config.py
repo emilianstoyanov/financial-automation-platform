@@ -1,9 +1,12 @@
 """Application settings loaded from environment variables."""
 
-from typing import Literal
+import json
+from typing import Any, Literal
 from functools import lru_cache
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.tasks.news.constants import DEFAULT_NEWS_RSS_FEEDS
 
 
 class Settings(BaseSettings):
@@ -66,6 +69,39 @@ class Settings(BaseSettings):
     # LLM extraction (Task 4)
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
     openai_model: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL")
+
+    # Financial news RSS (Task 5)
+    news_rss_feeds: list[dict[str, str]] = Field(
+        default_factory=lambda: list(DEFAULT_NEWS_RSS_FEEDS),
+        alias="NEWS_RSS_FEEDS",
+    )
+    news_scheduler_enabled: bool = Field(default=False, alias="NEWS_SCHEDULER_ENABLED")
+    news_scheduler_interval_minutes: int = Field(
+        default=1440,
+        ge=1,
+        alias="NEWS_SCHEDULER_INTERVAL_MINUTES",
+    )
+
+    # Exchange rate history scheduler (Task 5)
+    rates_scheduler_enabled: bool = Field(default=False, alias="RATES_SCHEDULER_ENABLED")
+    rates_scheduler_interval_minutes: int = Field(
+        default=1440,
+        ge=1,
+        alias="RATES_SCHEDULER_INTERVAL_MINUTES",
+    )
+
+    @field_validator("news_rss_feeds", mode="before")
+    @classmethod
+    def parse_news_rss_feeds(cls, value: Any) -> list[dict[str, str]]:
+        """Accept JSON string or list of {name, url} feed configs."""
+        if value is None or value == "":
+            return list(DEFAULT_NEWS_RSS_FEEDS)
+        if isinstance(value, str):
+            parsed = json.loads(value)
+            if not isinstance(parsed, list):
+                raise ValueError("NEWS_RSS_FEEDS must be a JSON array")
+            return parsed
+        return value
 
     @field_validator("database_url", mode="before")
     @classmethod

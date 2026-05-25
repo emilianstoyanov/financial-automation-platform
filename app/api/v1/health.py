@@ -28,4 +28,8 @@ async def health_check(
         service=settings.app_name,
         database=db_status,
         version="0.1.0",
+        news_scheduler_enabled=settings.news_scheduler_enabled,
+        news_scheduler_interval_minutes=settings.news_scheduler_interval_minutes,
+        rates_scheduler_enabled=settings.rates_scheduler_enabled,
+        rates_scheduler_interval_minutes=settings.rates_scheduler_interval_minutes,
     )

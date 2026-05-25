@@ -29,3 +29,6 @@ playwright>=1.49.0,<2.0.0
 
 # LLM extraction (Task 4)
 openai>=1.54.0,<2.0.0
+
+# Financial news RSS (Task 5)
+feedparser>=6.0.0,<7.0.0

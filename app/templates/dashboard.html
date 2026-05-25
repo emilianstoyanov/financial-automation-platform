@@ -16,7 +16,7 @@
       <div class="row align-items-center">
         <div class="col-lg-8">
           <h1 class="h2 mb-2 fw-semibold">{{ app_name }}</h1>
-          <p class="subtitle mb-0">ETL, Exchange Rates, Scraping, LLM Extraction</p>
+          <p class="subtitle mb-0">ETL, Exchange Rates, Scraping, LLM Extraction, Financial News</p>
         </div>
         <div class="col-lg-4 btn-group-links text-lg-end mt-3 mt-lg-0">
           <a href="https://github.com/emilianstoyanov/financial-automation-platform" class="btn btn-outline-light btn-sm me-2 d-inline-flex align-items-center gap-1" target="_blank" rel="noopener noreferrer">
@@ -39,7 +39,6 @@
         <div class="card task-card status-card">
           <div class="card-header d-flex justify-content-between align-items-center">
             <span>System Status</span>
-            <span class="badge text-bg-secondary badge-task">Task 5</span>
           </div>
           <div class="card-body status-card-body">
             <p class="text-muted small status-card-intro mb-0">Live health check from <code>{{ api_prefix }}/health</code>.</p>
@@ -55,6 +54,16 @@
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="health-refresh">Refresh status</button>
               </div>
             </div>
+            <div class="status-scheduler-block mt-2" id="health-scheduler-block">
+              <p class="status-scheduler-line mb-1" id="health-news-scheduler-line">
+                <span class="status-scheduler-dot status-scheduler-dot--off" id="health-news-scheduler-dot" aria-hidden="true"></span>
+                <span id="health-news-scheduler-text">News scheduler: checking…</span>
+              </p>
+              <p class="status-scheduler-line mb-0" id="health-rates-scheduler-line">
+                <span class="status-scheduler-dot status-scheduler-dot--off" id="health-rates-scheduler-dot" aria-hidden="true"></span>
+                <span id="health-rates-scheduler-text">Rates scheduler: checking…</span>
+              </p>
+            </div>
             <div class="status-message status-card-message" id="health-status" aria-live="polite"></div>
             <button
               type="button"
@@ -69,6 +78,89 @@
             <div id="health-response-panel" class="health-response-panel" hidden>
               <div class="result-panel health-result-panel">
                 <div class="result-area" id="health-result"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exchange Rate History -->
+      <div class="col-12">
+        <div class="card task-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Financial Rates / Exchange History</span>
+            <span class="badge text-bg-info badge-task">Task 5</span>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">Daily BGN-based EUR, USD, and GBP snapshots stored in SQLite. Refresh fetches live rates (Task 2 client) and records today&apos;s row.</p>
+            <div class="rates-last-updated-bar mb-3" id="rates-last-updated" aria-live="polite">
+              <div class="rates-last-updated-label">Last updated</div>
+              <div class="rates-last-updated-time" id="rates-last-updated-time">never</div>
+              <div class="rates-last-updated-stats" id="rates-last-updated-stats" hidden></div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <button type="button" class="btn btn-primary btn-action" id="rates-refresh" data-loading-text="Refreshing…">
+                Refresh rates
+              </button>
+              <button type="button" class="btn btn-outline-primary btn-action" id="rates-load" data-loading-text="Loading…">
+                Load latest rates
+              </button>
+            </div>
+            <div class="result-panel">
+              <div class="result-panel-header">
+                <div class="result-panel-label">Rates</div>
+                <button type="button" class="btn btn-sm btn-clear-results" id="rates-clear" hidden>Clear results</button>
+              </div>
+              <div class="status-message" id="rates-status" aria-live="polite"></div>
+              <div class="result-area" id="rates-result">
+                <p class="result-placeholder text-muted small mb-0">Latest stored rates will appear here.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial News -->
+      <div class="col-12">
+        <div class="card task-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Financial News</span>
+            <span class="badge text-bg-secondary badge-task">Task 5</span>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-2">RSS financial news from configured feeds. Stored in SQLite; refresh fetches new items only.</p>
+            {% if news_rss_sources %}
+            <div class="news-sources-line mb-3" aria-label="Configured RSS sources">
+              <span class="news-sources-label">Sources</span>
+              <span class="news-sources-list">
+                {% for source in news_rss_sources %}
+                <span class="badge rounded-pill news-source-badge news-source-badge--{{ source.slug }}">{{ source.name }}</span>
+                {% endfor %}
+              </span>
+            </div>
+            {% endif %}
+            <div class="news-last-updated-bar mb-3" id="news-last-updated" aria-live="polite">
+              <div class="news-last-updated-label">Last updated</div>
+              <div class="news-last-updated-time" id="news-last-updated-time">never</div>
+              <div class="news-last-updated-stats" id="news-last-updated-stats" hidden></div>
+              <p class="news-last-updated-hint mb-0" id="news-last-updated-hint" hidden></p>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <button type="button" class="btn btn-primary btn-action" id="news-refresh" data-loading-text="Refreshing…">
+                Refresh news
+              </button>
+              <button type="button" class="btn btn-outline-primary btn-action" id="news-load" data-loading-text="Loading…">
+                Load latest
+              </button>
+            </div>
+            <div class="result-panel">
+              <div class="result-panel-header">
+                <div class="result-panel-label">News</div>
+                <button type="button" class="btn btn-sm btn-clear-results" id="news-clear" hidden>Clear results</button>
+              </div>
+              <div class="status-message" id="news-status" aria-live="polite"></div>
+              <div class="result-area" id="news-result">
+                <p class="result-placeholder text-muted small mb-0">Latest headlines will appear here.</p>
               </div>
             </div>
           </div>
@@ -390,6 +482,8 @@
       ex: '<p class="result-placeholder text-muted small mb-0">Conversion JSON will appear here.</p>',
       scrape: '<p class="result-placeholder text-muted small mb-0">Document count and preview will appear here.</p>',
       llm: '<p class="result-placeholder text-muted small mb-0">Structured extraction JSON will appear here.</p>',
+      news: '<p class="result-placeholder text-muted small mb-0">Latest headlines will appear here.</p>',
+      rates: '<p class="result-placeholder text-muted small mb-0">Latest stored rates will appear here.</p>',
     };
 
     function setClearVisible(clearBtnId, visible) {
@@ -433,6 +527,18 @@
       setStatus(document.getElementById("scrape-status"), "", "");
       resetResultArea(document.getElementById("scrape-result"), RESULT_PLACEHOLDERS.scrape);
       setClearVisible("scrape-clear", false);
+    }
+
+    function resetNewsTask() {
+      setStatus(document.getElementById("news-status"), "", "");
+      resetResultArea(document.getElementById("news-result"), RESULT_PLACEHOLDERS.news);
+      setClearVisible("news-clear", false);
+    }
+
+    function resetRatesTask() {
+      setStatus(document.getElementById("rates-status"), "", "");
+      resetResultArea(document.getElementById("rates-result"), RESULT_PLACEHOLDERS.rates);
+      setClearVisible("rates-clear", false);
     }
 
     function resetLlmTask() {
@@ -534,10 +640,24 @@
       copyToClipboard(text, btn);
     });
 
+    let jsonOutputBlockCounter = 0;
+
     function buildJsonOutputBlock(jsonString, title) {
-      const heading = title ? '<div class="result-panel-subtitle">' + escapeHtml(title) + "</div>" : "";
+      const blockId = "json-output-" + ++jsonOutputBlockCounter;
+      const label = title || "JSON";
       return (
-        heading +
+        '<div class="json-output-block">' +
+        '<button type="button" class="btn btn-outline-primary json-output-toggle" ' +
+        'aria-expanded="false" aria-controls="' +
+        blockId +
+        '" data-json-label="' +
+        escapeHtml(label) +
+        '">Show ' +
+        escapeHtml(label) +
+        "</button>" +
+        '<div id="' +
+        blockId +
+        '" class="json-output-panel" hidden>' +
         '<div class="result-output">' +
         '<div class="result-output-actions">' +
         '<button type="button" class="btn btn-copy" aria-label="Copy result">' +
@@ -545,7 +665,7 @@
         " Copy</button></div>" +
         '<pre class="result-pre p-3">' +
         escapeHtml(jsonString) +
-        "</pre></div>"
+        "</pre></div></div></div>"
       );
     }
 
@@ -854,6 +974,78 @@
       }
     }
 
+    function formatSchedulerInterval(minutes) {
+      const m = Number(minutes);
+      if (!Number.isFinite(m) || m < 1) return "every ?";
+      if (m % 1440 === 0) {
+        const days = m / 1440;
+        return days === 1 ? "every 24h" : "every " + days + "d";
+      }
+      if (m % 60 === 0) {
+        const hours = m / 60;
+        return hours === 1 ? "every 1h" : "every " + hours + "h";
+      }
+      return m === 1 ? "every 1 min" : "every " + m + " min";
+    }
+
+    function updateSchedulerLine(lineId, dotId, textId, enabled, intervalMinutes, label) {
+      const line = document.getElementById(lineId);
+      const dot = document.getElementById(dotId);
+      const text = document.getElementById(textId);
+      if (!line || !dot || !text) return;
+
+      if (enabled) {
+        line.classList.add("is-enabled");
+        line.classList.remove("is-disabled");
+        dot.className = "status-scheduler-dot status-scheduler-dot--on";
+        text.textContent =
+          label + " scheduler enabled · " + formatSchedulerInterval(intervalMinutes);
+      } else {
+        line.classList.add("is-disabled");
+        line.classList.remove("is-enabled");
+        dot.className = "status-scheduler-dot status-scheduler-dot--off";
+        text.textContent = label + " scheduler disabled · manual refresh only";
+      }
+    }
+
+    function updateSchedulerStatus(data) {
+      if (data) {
+        updateSchedulerLine(
+          "health-news-scheduler-line",
+          "health-news-scheduler-dot",
+          "health-news-scheduler-text",
+          !!data.news_scheduler_enabled,
+          data.news_scheduler_interval_minutes,
+          "News"
+        );
+        updateSchedulerLine(
+          "health-rates-scheduler-line",
+          "health-rates-scheduler-dot",
+          "health-rates-scheduler-text",
+          !!data.rates_scheduler_enabled,
+          data.rates_scheduler_interval_minutes,
+          "Rates"
+        );
+      } else {
+        updateSchedulerLine(
+          "health-news-scheduler-line",
+          "health-news-scheduler-dot",
+          "health-news-scheduler-text",
+          false,
+          1440,
+          "News"
+        );
+        updateSchedulerLine(
+          "health-rates-scheduler-line",
+          "health-rates-scheduler-dot",
+          "health-rates-scheduler-text",
+          false,
+          1440,
+          "Rates"
+        );
+      }
+    }
+
     async function loadHealth() {
       const status = document.getElementById("health-status");
       const result = document.getElementById("health-result");
@@ -879,6 +1071,7 @@
         setBadge(badgeSqlite, "SQLite: " + (data.database || "unknown"), dbOk);
         badgeEnv.textContent = "Environment: " + (data.environment || "—");
         badgeEnv.className = "badge rounded-pill text-bg-primary status-badge";
+        updateSchedulerStatus(data);
 
         setStatus(
           status,
@@ -893,6 +1086,7 @@
         setBadge(badgeSqlite, "SQLite: unknown", false);
         badgeEnv.textContent = "Environment: —";
         badgeEnv.className = "badge rounded-pill text-bg-secondary status-badge";
+        updateSchedulerStatus(null);
         setStatus(status, "error", err.message || String(err));
         result.innerHTML =
           '<p class="result-placeholder text-danger small mb-0">Could not reach health endpoint.</p>';
@@ -911,6 +1105,29 @@
         return;
       }
 
+      const warningToggle = event.target.closest(".news-warning-toggle");
+      if (warningToggle) {
+        const hintEl = document.getElementById("news-last-updated-hint");
+        if (!hintEl || !hintEl.textContent.trim()) return;
+        const expanded = warningToggle.getAttribute("aria-expanded") === "true";
+        setNewsWarningHintVisible(!expanded);
+        return;
+      }
+
+      const jsonToggle = event.target.closest(".json-output-toggle");
+      if (jsonToggle) {
+        const panelId = jsonToggle.getAttribute("aria-controls");
+        const panel = panelId ? document.getElementById(panelId) : null;
+        if (!panel) return;
+        const expanded = jsonToggle.getAttribute("aria-expanded") === "true";
+        const nextExpanded = !expanded;
+        const label = jsonToggle.dataset.jsonLabel || "JSON";
+        jsonToggle.setAttribute("aria-expanded", nextExpanded ? "true" : "false");
+        panel.hidden = !nextExpanded;
+        jsonToggle.textContent = nextExpanded ? "Hide " + label : "Show " + label;
+        return;
+      }
+
       const toggle = event.target.closest(".etl-rejected-toggle");
       if (!toggle) return;
       const panelId = toggle.getAttribute("aria-controls");
@@ -922,8 +1139,507 @@
       toggle.textContent = expanded ? "View rejected rows" : "Hide rejected rows";
     });
 
+    function formatNewsDateTime(isoValue) {
+      if (!isoValue) return "";
+      const parsed = new Date(isoValue);
+      if (Number.isNaN(parsed.getTime())) return String(isoValue);
+      const pad = function (n) {
+        return String(n).padStart(2, "0");
+      };
+      return (
+        parsed.getFullYear() +
+        "-" +
+        pad(parsed.getMonth() + 1) +
+        "-" +
+        pad(parsed.getDate()) +
+        " " +
+        pad(parsed.getHours()) +
+        ":" +
+        pad(parsed.getMinutes())
+      );
+    }
+
+    function buildNewsMetaLine(item) {
+      const source = escapeHtml(item.source || "Unknown");
+      const when = formatNewsDateTime(item.published_at || item.collected_at || "");
+      return when ? source + " · " + escapeHtml(when) : source;
+    }
+
+    function newsMetaStatBadge(label, value, tone) {
+      return (
+        '<span class="news-meta-stat news-meta-stat--' +
+        tone +
+        '">' +
+        escapeHtml(String(value)) +
+        " " +
+        escapeHtml(label) +
+        "</span>"
+      );
+    }
+
+    function newsWarningToggleBadge(count) {
+      const label = count === 1 ? "warning" : "warnings";
+      const ariaLabel =
+        count === 1
+          ? "1 feed warning. Click to show details."
+          : count + " feed warnings. Click to show details.";
+      return (
+        '<button type="button" class="news-meta-stat news-meta-stat--warn news-warning-toggle" ' +
+        'aria-expanded="false" aria-controls="news-last-updated-hint" ' +
+        'aria-label="' +
+        escapeHtml(ariaLabel) +
+        '" title="Show feed warning details">' +
+        escapeHtml(String(count)) +
+        " " +
+        escapeHtml(label) +
+        "</button>"
+      );
+    }
+
+    function setNewsWarningHintVisible(visible) {
+      const hintEl = document.getElementById("news-last-updated-hint");
+      const bar = document.getElementById("news-last-updated");
+      const btn = document.querySelector(".news-warning-toggle");
+      if (hintEl) {
+        hintEl.hidden = !visible;
+        hintEl.classList.toggle("is-visible", visible);
+      }
+      if (bar) {
+        bar.classList.toggle("news-warning-hint-open", visible);
+      }
+      if (btn) {
+        btn.setAttribute("aria-expanded", visible ? "true" : "false");
+      }
+    }
+
+    function buildNewsLastUpdatedWarningSummary(data) {
+      if (!data) return "";
+      const warnings = data.last_warning_count || 0;
+      if (warnings <= 0) return "";
+
+      if (data.last_warning_summary) {
+        return String(data.last_warning_summary);
+      }
+
+      const errors = data.errors || [];
+      if (!errors.length) return "";
+
+      const otherFeedsSucceeded = newsRefreshHadSuccessfulFeeds(data);
+      if (errors.length > 1) {
+        return otherFeedsSucceeded
+          ? "Some RSS feeds could not be parsed. Other feeds were processed successfully."
+          : "Some RSS feeds could not be loaded.";
+      }
+      return friendlyFeedWarning(
+        errors[0].source,
+        errors[0].error,
+        otherFeedsSucceeded
+      );
+    }
+
+    function updateNewsLastUpdatedPanel(data) {
+      const bar = document.getElementById("news-last-updated");
+      const timeEl = document.getElementById("news-last-updated-time");
+      const statsEl = document.getElementById("news-last-updated-stats");
+      const hintEl = document.getElementById("news-last-updated-hint");
+      if (!bar || !timeEl || !statsEl || !data) return;
+
+      const at = data.last_refresh_at;
+      if (!at) {
+        bar.classList.remove("is-active");
+        timeEl.textContent = "never";
+        statsEl.hidden = true;
+        statsEl.innerHTML = "";
+        if (hintEl) {
+          hintEl.textContent = "";
+        }
+        setNewsWarningHintVisible(false);
+        return;
+      }
+
+      bar.classList.add("is-active");
+      timeEl.textContent = formatNewsDateTime(at);
+
+      if (
+        data.last_inserted_count === undefined ||
+        data.last_inserted_count === null ||
+        data.last_skipped_duplicates === undefined ||
+        data.last_skipped_duplicates === null
+      ) {
+        statsEl.hidden = true;
+        statsEl.innerHTML = "";
+        if (hintEl) {
+          hintEl.textContent = "";
+        }
+        setNewsWarningHintVisible(false);
+        return;
+      }
+
+      const inserted = data.last_inserted_count || 0;
+      const skipped = data.last_skipped_duplicates || 0;
+      const warnings = data.last_warning_count || 0;
+      const warningSummary = buildNewsLastUpdatedWarningSummary(data);
+      let statsHtml = newsMetaStatBadge("new", inserted, "new");
+      statsHtml += newsMetaStatBadge("already stored", skipped, "stored");
+      if (warnings > 0) {
+        statsHtml += newsWarningToggleBadge(warnings);
+      }
+      statsEl.innerHTML = statsHtml;
+      statsEl.hidden = false;
+
+      if (hintEl) {
+        hintEl.textContent = warningSummary || "";
+      }
+      setNewsWarningHintVisible(false);
+    }
+
+    async function loadNewsLastUpdated() {
+      try {
+        const response = await fetch(API + "/news?limit=1");
+        if (!response.ok) return;
+        updateNewsLastUpdatedPanel(await response.json());
+      } catch (_) {
+        /* ignore */
+      }
+    }
+
+    function newsRefreshHadSuccessfulFeeds(data) {
+      return (data.inserted_count || 0) > 0 || (data.skipped_duplicates || 0) > 0;
+    }
+
+    function friendlyFeedWarning(source, rawError, otherFeedsSucceeded) {
+      const name = source || "Unknown feed";
+      const lower = String(rawError || "").toLowerCase();
+      const parseIssue =
+        lower.indexOf("broken feed") !== -1 ||
+        lower.indexOf("not well-formed") !== -1 ||
+        lower.indexOf("invalid token") !== -1 ||
+        lower.indexOf("<unknown>") !== -1 ||
+        lower.indexOf("bozo") !== -1;
+
+      if (parseIssue && otherFeedsSucceeded) {
+        return name + " RSS feed could not be parsed. Other feeds were processed successfully.";
+      }
+      if (parseIssue) {
+        return name + " RSS feed could not be parsed.";
+      }
+      if (lower.indexOf("missing feed url") !== -1) {
+        return name + " feed is not configured correctly.";
+      }
+      if (otherFeedsSucceeded) {
+        return name + " feed could not be loaded. Other feeds were processed successfully.";
+      }
+      return name + " feed could not be loaded.";
+    }
+
+    function buildNewsRefreshStatusLine(data) {
+      const inserted = data.inserted_count || 0;
+      const skipped = data.skipped_duplicates || 0;
+      const warningCount = (data.errors || []).length;
+      let line =
+        "Refresh completed: " + inserted + " new, " + skipped + " already stored";
+      if (warningCount === 1) {
+        line += ", 1 feed warning.";
+      } else if (warningCount > 1) {
+        line += ", " + warningCount + " feed warnings.";
+      } else {
+        line += ".";
+      }
+      return line;
+    }
+
+    function renderNewsFeedWarnings(errors, otherFeedsSucceeded) {
+      if (!errors || !errors.length) {
+        return "";
+      }
+      let html =
+        '<div class="alert alert-warning news-feed-warnings py-2 px-3 mb-3" role="alert">' +
+        '<div class="small fw-semibold mb-1">Feed warnings</div><ul class="mb-0 small ps-3">';
+      errors.forEach(function (entry) {
+        html +=
+          "<li>" +
+          escapeHtml(
+            friendlyFeedWarning(entry.source, entry.error, otherFeedsSucceeded)
+          ) +
+          "</li>";
+      });
+      html += "</ul></div>";
+      return html;
+    }
+
+    function renderNewsResult(container, data) {
+      const items = data.items || data.preview || [];
+      const json = JSON.stringify(data, null, 2);
+      container.dataset.copyText = json;
+      const isRefresh = data.inserted_count !== undefined;
+      const feedWarnings =
+        isRefresh && data.errors && data.errors.length
+          ? renderNewsFeedWarnings(data.errors, newsRefreshHadSuccessfulFeeds(data))
+          : "";
+
+      if (!items.length) {
+        const hint = isRefresh
+          ? "No new articles from this refresh. Use Load latest to view stored headlines."
+          : "No news items to display.";
+        container.innerHTML =
+          feedWarnings +
+          '<p class="text-muted small mb-2">' + escapeHtml(hint) + "</p>" +
+          buildJsonOutputBlock(json, "Response");
+        return;
+      }
+
+      let cardsHtml = '<div class="row g-3 news-cards-grid mb-3">';
+      items.forEach(function (item) {
+        const summary = (item.summary || "").trim();
+        const excerptHtml = summary
+          ? '<p class="news-article-excerpt mb-0">' + escapeHtml(summary) + "</p>"
+          : "";
+        cardsHtml +=
+          '<div class="col-12 col-md-6">' +
+          '<article class="news-article-card h-100">' +
+          '<h3 class="news-article-title h6 mb-2">' +
+          '<a href="' +
+          escapeHtml(item.url) +
+          '" target="_blank" rel="noopener noreferrer">' +
+          escapeHtml(item.title) +
+          "</a></h3>" +
+          '<div class="news-article-meta small text-muted mb-2">' +
+          buildNewsMetaLine(item) +
+          "</div>" +
+          excerptHtml +
+          "</article></div>";
+      });
+      cardsHtml += "</div>";
+      container.innerHTML = feedWarnings + cardsHtml + buildJsonOutputBlock(json, "Raw JSON");
+    }
+
+    async function loadNewsList() {
+      const btn = document.getElementById("news-load");
+      const status = document.getElementById("news-status");
+      const result = document.getElementById("news-result");
+      clearResult(result);
+      setLoading(btn, true);
+      setStatus(status, "loading", "Loading latest news…");
+      try {
+        const response = await fetch(API + "/news?limit=10");
+        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        const data = await response.json();
+        setStatus(status, "success", "Showing " + (data.items ? data.items.length : 0) + " of " + (data.total || 0) + " stored item(s).");
+        updateNewsLastUpdatedPanel(data);
+        renderNewsResult(result, data);
+        setClearVisible("news-clear", true);
+      } catch (err) {
+        setStatus(status, "error", err.message || String(err));
+        setClearVisible("news-clear", true);
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    async function refreshNews() {
+      const btn = document.getElementById("news-refresh");
+      const status = document.getElementById("news-status");
+      const result = document.getElementById("news-result");
+      clearResult(result);
+      setLoading(btn, true);
+      setStatus(status, "loading", "Fetching RSS feeds…");
+      try {
+        const response = await fetch(API + "/news/refresh", { method: "POST" });
+        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        const data = await response.json();
+        const errCount = (data.errors || []).length;
+        const feedsOk = newsRefreshHadSuccessfulFeeds(data);
+        const statusType = errCount && !feedsOk ? "error" : errCount ? "warning" : "success";
+        setStatus(status, statusType, buildNewsRefreshStatusLine(data));
+        updateNewsLastUpdatedPanel(data);
+        renderNewsResult(result, data);
+        setClearVisible("news-clear", true);
+      } catch (err) {
+        setStatus(status, "error", err.message || String(err));
+        setClearVisible("news-clear", true);
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    function formatRateChange(change, pct) {
+      if (change === null || change === undefined || pct === null || pct === undefined) {
+        return '<span class="text-muted">—</span>';
+      }
+      const sign = change >= 0 ? "+" : "";
+      const tone = change >= 0 ? "text-success" : "text-danger";
+      return (
+        '<span class="' +
+        tone +
+        '">' +
+        sign +
+        escapeHtml(String(change)) +
+        " (" +
+        sign +
+        escapeHtml(String(pct)) +
+        "%)</span>"
+      );
+    }
+
+    function updateRatesLastUpdatedPanel(data) {
+      const bar = document.getElementById("rates-last-updated");
+      const timeEl = document.getElementById("rates-last-updated-time");
+      const statsEl = document.getElementById("rates-last-updated-stats");
+      if (!bar || !timeEl || !statsEl || !data) return;
+
+      const at = data.last_refresh_at;
+      if (!at) {
+        bar.classList.remove("is-active");
+        timeEl.textContent = "never";
+        statsEl.hidden = true;
+        statsEl.innerHTML = "";
+        return;
+      }
+
+      bar.classList.add("is-active");
+      timeEl.textContent = formatNewsDateTime(at);
+      const inserted = data.last_inserted_count;
+      const updated = data.last_updated_count;
+      if (inserted === undefined && updated === undefined) {
+        statsEl.hidden = true;
+        statsEl.innerHTML = "";
+        return;
+      }
+      let html = "";
+      if (inserted !== undefined && inserted !== null) {
+        html += newsMetaStatBadge("inserted", inserted, "new");
+      }
+      if (updated !== undefined && updated !== null && updated > 0) {
+        html += newsMetaStatBadge("updated", updated, "stored");
+      }
+      if (data.source) {
+        html +=
+          '<span class="news-meta-stat news-meta-stat--stored">' +
+          escapeHtml(data.source) +
+          "</span>";
+      }
+      statsEl.innerHTML = html;
+      statsEl.hidden = !html;
+    }
+
+    function renderRatesResult(container, data) {
+      const rates = data.rates || [];
+      const json = JSON.stringify(data, null, 2);
+      container.dataset.copyText = json;
+
+      if (!rates.length) {
+        const hint =
+          data.inserted_count !== undefined
+            ? "No rates saved. Check errors below or try again."
+            : "No stored rates yet. Use Refresh rates to fetch and save.";
+        container.innerHTML =
+          '<p class="text-muted small mb-2">' +
+          escapeHtml(hint) +
+          "</p>" +
+          buildJsonOutputBlock(json, "Response");
+        return;
+      }
+
+      let tableHtml =
+        '<div class="table-responsive mb-3"><table class="table table-sm rates-table mb-0">' +
+        "<thead><tr><th>Currency</th><th>Rate (BGN)</th><th>Date</th><th>Daily change</th></tr></thead><tbody>";
+      rates.forEach(function (entry) {
+        tableHtml +=
+          "<tr><td>" +
+          escapeHtml(entry.target_currency) +
+          "</td><td>" +
+          escapeHtml(String(entry.rate)) +
+          "</td><td>" +
+          escapeHtml(entry.rate_date || "") +
+          "</td><td>" +
+          formatRateChange(entry.daily_change, entry.daily_change_pct) +
+          "</td></tr>";
+      });
+      tableHtml += "</tbody></table></div>";
+      container.innerHTML = tableHtml + buildJsonOutputBlock(json, "Raw JSON");
+    }
+
+    async function loadRatesLastUpdated() {
+      try {
+        const response = await fetch(API + "/rates");
+        if (!response.ok) return;
+        updateRatesLastUpdatedPanel(await response.json());
+      } catch (_) {
+        /* ignore */
+      }
+    }
+
+    async function loadRatesList() {
+      const btn = document.getElementById("rates-load");
+      const status = document.getElementById("rates-status");
+      const result = document.getElementById("rates-result");
+      clearResult(result);
+      setLoading(btn, true);
+      setStatus(status, "loading", "Loading stored rates…");
+      try {
+        const response = await fetch(API + "/rates");
+        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        const data = await response.json();
+        setStatus(
+          status,
+          "success",
+          "Showing " + (data.rates ? data.rates.length : 0) + " stored rate(s)."
+        );
+        updateRatesLastUpdatedPanel(data);
+        renderRatesResult(result, data);
+        setClearVisible("rates-clear", true);
+      } catch (err) {
+        setStatus(status, "error", err.message || String(err));
+        setClearVisible("rates-clear", true);
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    async function refreshRates() {
+      const btn = document.getElementById("rates-refresh");
+      const status = document.getElementById("rates-status");
+      const result = document.getElementById("rates-result");
+      clearResult(result);
+      setLoading(btn, true);
+      setStatus(status, "loading", "Fetching live rates…");
+      try {
+        const response = await fetch(API + "/rates/refresh", { method: "POST" });
+        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        const data = await response.json();
+        const errCount = (data.errors || []).length;
+        const saved = (data.inserted_count || 0) + (data.updated_count || 0);
+        const statusType = errCount && !saved ? "error" : errCount ? "warning" : "success";
+        let line =
+          "Refresh completed: " +
+          (data.inserted_count || 0) +
+          " inserted, " +
+          (data.updated_count || 0) +
+          " updated.";
+        if (errCount) {
+          line += " " + errCount + " error(s).";
+        }
+        setStatus(status, statusType, line);
+        updateRatesLastUpdatedPanel(data);
+        renderRatesResult(result, data);
+        setClearVisible("rates-clear", true);
+      } catch (err) {
+        setStatus(status, "error", err.message || String(err));
+        setClearVisible("rates-clear", true);
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
     document.getElementById("health-refresh").addEventListener("click", loadHealth);
     loadHealth();
+    loadNewsLastUpdated();
+    loadRatesLastUpdated();
+
+    document.getElementById("news-refresh").addEventListener("click", refreshNews);
+    document.getElementById("news-load").addEventListener("click", loadNewsList);
+    document.getElementById("rates-refresh").addEventListener("click", refreshRates);
+    document.getElementById("rates-load").addEventListener("click", loadRatesList);
 
     document.getElementById("etl-submit").addEventListener("click", async () => {
       const btn = document.getElementById("etl-submit");
@@ -1126,6 +1842,8 @@
     document.getElementById("ex-clear").addEventListener("click", resetExchangeTask);
     document.getElementById("scrape-clear").addEventListener("click", resetScrapeTask);
     document.getElementById("llm-clear").addEventListener("click", resetLlmTask);
+    document.getElementById("news-clear").addEventListener("click", resetNewsTask);
+    document.getElementById("rates-clear").addEventListener("click", resetRatesTask);
 
     const llmModelSelect = document.getElementById("llm-model");
     if (llmModelSelect) {

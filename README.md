@@ -38,6 +38,7 @@ No local setup or API keys are required for the live demo. The production enviro
 | **2 — Exchange** | EUR / USD / GBP vs BGN (1h cache) | `data/exchange/cache.json` |
 | **3 — Scraping** | PDF discovery, download, metadata + text preview | `data/scraping/extracted_documents.json` |
 | **4 — LLM** | Structured fields from unstructured text | `data/llm/extracted_data.json`, `data/llm/comparison_report.md` |
+| **5 — Mini project** | RSS news + exchange rate history | SQLite `news`, `exchange_rates`, `app_metadata` |
 
 Assignment specs: `docs/assignment/`.
 
@@ -114,6 +115,11 @@ Health: `curl http://localhost:8000/api/v1/health` (production: `/api/v1/health`
 | `POST` | `/api/v1/scraping/scrape-html` | Yes |
 | `GET` | `/api/v1/llm/process-sample-documents` | Yes |
 | `POST` | `/api/v1/llm/extract` | **No** — response only |
+| `GET` | `/api/v1/news?limit=10` | No — reads SQLite |
+| `POST` | `/api/v1/news/refresh` | Yes — SQLite `news` table |
+| `GET` | `/api/v1/rates` | No — reads SQLite `exchange_rates` |
+| `GET` | `/api/v1/rates/history?days=7` | No — reads SQLite |
+| `POST` | `/api/v1/rates/refresh` | Yes — SQLite `exchange_rates` + metadata |
 | `GET` | `/docs`, `/redoc` | No |
 
 ---
@@ -129,8 +135,11 @@ Health: `curl http://localhost:8000/api/v1/health` (production: `/api/v1/health`
 | `logs/scraping.log` | Task 3 |
 | `logs/llm.log` | Task 4 batch |
 | `logs/app.log` | App logging |
+| `data/financial_data.db` | SQLite: `news`, `exchange_rates`, `app_metadata` (Task 5) |
 
 `POST /api/v1/llm/extract` returns JSON in the response only — use the batch endpoint to persist LLM output.
+
+Task 2 live rates still use `data/exchange/cache.json`; Task 5 history is separate in SQLite.
 
 ---
 
@@ -216,7 +225,44 @@ pytest tests/tasks/test_llm_normalizer.py tests/tasks/test_llm_extractor.py test
 
 Spec: `docs/assignment/Task_4_LLM_Data_Extraction/README.md`
 
-**Config (`.env`):** `DATABASE_URL`, `ENVIRONMENT`, `LOG_LEVEL`, `OPENAPI_ENABLED`, `EXCHANGE_RATE_API_URL`, `SCRAPING_BROWSER_FALLBACK`, `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-4o-mini`). See `.env.example`.
+**Config (`.env`):** `DATABASE_URL`, `ENVIRONMENT`, `LOG_LEVEL`, `OPENAPI_ENABLED`, `EXCHANGE_RATE_API_URL`, `SCRAPING_BROWSER_FALLBACK`, `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-4o-mini`), `NEWS_SCHEDULER_ENABLED`, `NEWS_SCHEDULER_INTERVAL_MINUTES`, `RATES_SCHEDULER_ENABLED`, `RATES_SCHEDULER_INTERVAL_MINUTES`. See `.env.example`.
+
+---
+
+## Task 5 — Financial News & Exchange History
+
+**Purpose:** RSS financial news aggregation plus daily BGN-based exchange rate history in SQLite. Reuses Task 2 `ExchangeApplicationService` for live rates; does not replace `/api/v1/exchange/*` or `data/exchange/cache.json`.
+
+| | |
+|--|--|
+| **News endpoints** | `GET /api/v1/news?limit=10`, `POST /api/v1/news/refresh` |
+| **Rates endpoints** | `GET /api/v1/rates`, `GET /api/v1/rates/history?days=7`, `POST /api/v1/rates/refresh` |
+| **News input** | Configured feeds (`NEWS_RSS_FEEDS` in `.env` as JSON, or defaults: BNB, Investor.bg, Capital) |
+| **Rates input** | Live API via Task 2 client (EUR, USD, GBP vs BGN) |
+| **Storage** | SQLite `news` (dedupe by URL), `exchange_rates` (dedupe by base + target + date), `app_metadata` for last refresh stats |
+
+**Schedulers (optional, off by default):** Background threads start after DB init and stop on shutdown. Manual dashboard buttons and POST refresh endpoints always work.
+
+| Variable | Default | Notes |
+|----------|---------|--------|
+| `NEWS_SCHEDULER_ENABLED` | `false` | Periodic RSS refresh |
+| `NEWS_SCHEDULER_INTERVAL_MINUTES` | `1440` | Minutes between news refreshes |
+| `RATES_SCHEDULER_ENABLED` | `false` | Periodic exchange history refresh |
+| `RATES_SCHEDULER_INTERVAL_MINUTES` | `1440` | Minutes between rate history refreshes |
+
+```bash
+curl "http://localhost:8000/api/v1/news?limit=10"
+curl -X POST http://localhost:8000/api/v1/news/refresh
+curl http://localhost:8000/api/v1/rates
+curl "http://localhost:8000/api/v1/rates/history?days=7"
+curl -X POST http://localhost:8000/api/v1/rates/refresh
+pytest tests/tasks/test_news_collector.py tests/tasks/test_news_repository.py \
+  tests/tasks/test_news_service.py tests/tasks/test_news_scheduler.py \
+  tests/tasks/test_exchange_rate_repository.py tests/tasks/test_rates_history_service.py \
+  tests/tasks/test_rates_scheduler.py tests/api/test_news.py tests/api/test_rates.py
+```
+
+Spec: `docs/assignment/Task_5_Mini_Project/README.md`
 
 ---
 
@@ -226,7 +272,7 @@ Spec: `docs/assignment/Task_4_LLM_Data_Extraction/README.md`
 pytest
 ```
 
-Covers ETL, exchange, scraping, LLM, and API routes.
+Covers ETL, exchange, scraping, LLM, news (RSS), exchange rate history, and API routes.
 
 ---
 
@@ -256,7 +302,7 @@ financial-automation-platform/
 │   ├── api/
 │   │   ├── router.py            # Aggregates v1 API routers
 │   │   ├── deps.py              # Shared FastAPI dependencies
-│   │   └── v1/                  # REST: health, etl, exchange, scraping, llm
+│   │   └── v1/                  # REST: health, etl, exchange, scraping, llm, news, rates
 │   ├── web/                     # Dashboard routes (HTML UI at /)
 │   ├── templates/               # Jinja templates (dashboard.html)
 │   ├── static/                  # Dashboard CSS, Swagger UI assets, favicon
@@ -267,12 +313,13 @@ financial-automation-platform/
 │   ├── models/                  # ORM models
 │   └── tasks/                   # Task implementations (assignment modules)
 │       ├── etl/                 # Task 1 — CSV clean, transform, report
-│       ├── exchange/            # Task 2 — live rates + file cache
+│       ├── exchange/            # Task 2 — live rates + file cache; Task 5 rates scheduler
 │       ├── scraping/            # Task 3 — fetch, parse, PDF extract
-│       └── llm/                 # Task 4 — OpenAI/mock extract, compare
+│       ├── llm/                 # Task 4 — OpenAI/mock extract, compare
+│       └── news/                # Task 5 — RSS collector
 ├── tests/
-│   ├── api/                     # Route tests (etl, exchange, scraping, llm, health, dashboard)
-│   ├── tasks/                   # Unit/integration tests per task package
+│   ├── api/                     # Route tests (etl, exchange, scraping, llm, news, rates, health, dashboard)
+│   ├── tasks/                   # Unit/integration tests per task package (incl. news, rates history)
 │   └── conftest.py
 ├── data/                        # Runtime outputs (gitignored; created on startup)
 │   ├── etl/                     # Input CSV, cleaned JSON, quality report

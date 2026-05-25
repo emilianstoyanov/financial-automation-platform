@@ -12,6 +12,8 @@ from app.core.static_files import mount_static_files
 from app.core.data_dirs import ensure_data_directories
 from app.web.dashboard import router as dashboard_router
 from app.core.logging_config import get_logger, setup_logging
+from app.tasks.exchange.scheduler import RatesRefreshScheduler
+from app.tasks.news.scheduler import NewsRefreshScheduler
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -27,8 +29,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     init_db()
     logger.info("Database initialized")
 
+    news_scheduler = NewsRefreshScheduler(settings)
+    rates_scheduler = RatesRefreshScheduler(settings)
+    news_scheduler.start()
+    rates_scheduler.start()
+
     yield
 
+    rates_scheduler.stop()
+    news_scheduler.stop()
     logger.info("Shutting down %s", settings.app_name)
 
 
