@@ -1,5 +1,7 @@
 """Pure transformation helpers for the ETL pipeline."""
 
+import re
+from datetime import datetime
 from typing import Any
 from dateutil import parser as date_parser
 from app.tasks.etl.constants import FX_RATES_TO_BGN, ISO_DATE_FORMAT, SUPPORTED_CURRENCIES
@@ -15,13 +17,67 @@ def is_missing(value: Any) -> bool:
     return text in _MISSING_VALUES
 
 
+_ISO_DATE_LIKE = re.compile(r"^\d{4}[-/]\d{1,2}[-/]\d{1,2}$")
+
+_STRICT_DATE_FORMATS = (
+    "%Y-%m-%d",
+    "%Y/%m/%d",
+    "%m-%d-%Y",
+    "%m/%d/%Y",
+    "%d.%m.%Y",
+)
+
+_EXTRA_DATE_FORMATS = (
+    "%d/%m/%Y",
+)
+
+
+def _parse_dmy_dash_unambiguous(text: str) -> datetime | None:
+    """Parse ``%d-%m-%Y`` only when the first segment is clearly a day (> 12)."""
+    parts = text.split("-")
+    if len(parts) != 3 or len(parts[2]) != 4:
+        return None
+    try:
+        first, second, year = int(parts[0]), int(parts[1]), int(parts[2])
+    except ValueError:
+        return None
+    if first <= 12:
+        return None
+    if not (1 <= second <= 12):
+        return None
+    try:
+        return datetime(year, second, first)
+    except ValueError:
+        return None
+
+
+def _try_strptime_formats(text: str, formats: tuple[str, ...]) -> datetime | None:
+    for fmt in formats:
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
 def parse_date(value: Any) -> str | None:
-    """Normalize mixed date strings to ISO ``YYYY-MM-DD`` (day-first); None if unparseable."""
+    """Normalize mixed date strings to ISO ``YYYY-MM-DD``; None if unparseable."""
     if is_missing(value):
         return None
 
     text = str(value).strip().rstrip(".")
     if not text:
+        return None
+
+    parsed = _try_strptime_formats(text, _STRICT_DATE_FORMATS)
+    if parsed is None:
+        parsed = _parse_dmy_dash_unambiguous(text)
+    if parsed is None:
+        parsed = _try_strptime_formats(text, _EXTRA_DATE_FORMATS)
+    if parsed is not None:
+        return parsed.strftime(ISO_DATE_FORMAT)
+
+    if _ISO_DATE_LIKE.match(text):
         return None
 
     try:

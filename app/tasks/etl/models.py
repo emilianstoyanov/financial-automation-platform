@@ -51,8 +51,8 @@ class QualityReport:
     def to_dict(self) -> dict:
         return asdict(self)
 
-    def format_text(self) -> str:
-        """Format row counters as a plain-text report for ``data_quality_report.txt``."""
+    def format_text(self, rejected_rows: list[RejectedRow] | None = None) -> str:
+        """Format counters and per-row rejection details for ``data_quality_report.txt``."""
         lines = [
             "Data Quality Report",
             "====================",
@@ -64,7 +64,19 @@ class QualityReport:
             f"Invalid date rows:       {self.invalid_date_rows}",
             f"Missing value rows:      {self.missing_value_rows}",
         ]
-        return "\n".join(lines) + "\n"
+        rows = rejected_rows or []
+        lines.append("")
+        lines.append("Rejected rows")
+        lines.append("-------------")
+        if not rows:
+            lines.append("(none)")
+        else:
+            for entry in rows:
+                lines.append(f"Row {entry.row_number}: {entry.reason}")
+                for key, value in entry.original_data.items():
+                    lines.append(f"  {key}: {value}")
+                lines.append("")
+        return "\n".join(lines).rstrip() + "\n"
 
 
 @dataclass

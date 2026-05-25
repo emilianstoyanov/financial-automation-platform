@@ -31,17 +31,29 @@ def test_is_missing(value, expected):
 @pytest.mark.parametrize(
     "value,expected",
     [
+        ("2024-06-01", "2024-06-01"),
+        ("2024/04/10", "2024-04-10"),
+        ("03-20-2024", "2024-03-20"),
         ("8/23/2024", "2024-08-23"),
         ("28/5/2024", "2024-05-28"),
         ("27/12/2024", "2024-12-27"),
         ("9/19/2024.", "2024-09-19"),
+        ("28-05-2024", "2024-05-28"),
+        ("15.03.2024", "2024-03-15"),
         ("", None),
         ("invalid", None),
+        ("invalid-date", None),
+        ("2024-13-40", None),
     ],
 )
 def test_parse_date(value, expected):
     """parse_date normalizes mixed inputs to ISO dates or None."""
     assert parse_date(value) == expected
+
+
+def test_parse_date_iso_not_day_first():
+    """ISO YYYY-MM-DD must never be reinterpreted as day-first."""
+    assert parse_date("2024-06-01") == "2024-06-01"
 
 
 @pytest.mark.parametrize(

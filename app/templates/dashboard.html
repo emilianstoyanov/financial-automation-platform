@@ -19,7 +19,12 @@
           <p class="subtitle mb-0">ETL, Exchange Rates, Scraping, LLM Extraction</p>
         </div>
         <div class="col-lg-4 btn-group-links text-lg-end mt-3 mt-lg-0">
-          <a href="https://github.com/emilianstoyanov/financial-automation-platform" class="btn btn-outline-light btn-sm me-2" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://github.com/emilianstoyanov/financial-automation-platform" class="btn btn-outline-light btn-sm me-2 d-inline-flex align-items-center gap-1" target="_blank" rel="noopener noreferrer">
+            <svg class="github-btn-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.88.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            GitHub
+          </a>
           <a href="/docs" class="btn btn-outline-light btn-sm me-2" target="_blank" rel="noopener">Swagger</a>
           <a href="/redoc" class="btn btn-outline-light btn-sm" target="_blank" rel="noopener">ReDoc</a>
         </div>
@@ -78,12 +83,15 @@
             <span class="badge text-bg-primary badge-task">Task 1</span>
           </div>
           <div class="card-body">
-            <p class="text-muted small mb-3">Upload a financial CSV. Required columns: date, company_id, revenue, expenses, currency, category.</p>
+            <p class="text-muted small mb-3">Upload or drag and drop a financial CSV. Required columns: date, company_id, revenue, expenses, currency, category.</p>
             <div class="mb-3">
               <label for="etl-file" class="form-label">CSV file</label>
-              <div class="dash-file-upload dash-file-upload-primary">
+              <div class="dash-file-upload dash-file-upload-primary" id="etl-file-zone" data-file-input="etl-file" data-file-name="etl-file-name">
                 <input type="file" class="dash-file-input" id="etl-file" accept=".csv,text/csv" />
-                <span class="dash-file-name" id="etl-file-name">No file chosen</span>
+                <div class="dash-file-upload-text">
+                  <span class="dash-file-name" id="etl-file-name">No file chosen</span>
+                  <span class="dash-file-hint">Choose file or drag and drop your CSV here</span>
+                </div>
               </div>
             </div>
             <button type="button" class="btn btn-primary btn-action" id="etl-submit" data-loading-text="Processing…">
@@ -192,19 +200,22 @@
             <span class="badge text-bg-info text-dark badge-task">Task 4</span>
           </div>
           <div class="card-body">
-            <p class="text-muted small mb-3">Paste text or upload a <code>.txt</code> file. Uses OpenAI when configured; otherwise mock rules.</p>
+            <p class="text-muted small mb-3">Paste text, or upload or drag and drop a <code>.txt</code> file. Uses OpenAI when configured; otherwise mock rules.</p>
             <div class="mb-3">
-              <label for="llm-file" class="form-label">Upload document (.txt)</label>
-              <div class="dash-file-upload dash-file-upload-info">
+              <label for="llm-file" class="form-label">Document (.txt)</label>
+              <div class="dash-file-upload dash-file-upload-info" id="llm-file-zone" data-file-input="llm-file" data-file-name="llm-file-name">
                 <input type="file" class="dash-file-input" id="llm-file" accept=".txt,text/plain" />
-                <span class="dash-file-name" id="llm-file-name">No file chosen</span>
+                <div class="dash-file-upload-text">
+                  <span class="dash-file-name" id="llm-file-name">No file chosen</span>
+                  <span class="dash-file-hint">Choose file or drag and drop your document here</span>
+                </div>
               </div>
-              <div class="form-text">Selected file content is loaded into the text area below for review.</div>
+              <div class="form-text">Upload or drag and drop — the file content loads into the text area below for review.</div>
             </div>
             <div class="mb-3">
               <label for="llm-text" class="form-label">Document text</label>
               <textarea class="form-control font-monospace" id="llm-text" rows="6"
-                placeholder="Paste or upload financial document text here…"></textarea>
+                placeholder="Paste text, or upload or drag and drop a document above…"></textarea>
             </div>
             <div class="mb-3 llm-ai-settings">
               <button
@@ -301,6 +312,55 @@
 
     updateFileName("etl-file", "etl-file-name");
     updateFileName("llm-file", "llm-file-name");
+
+    function setupFileDropZone(zoneId) {
+      const zone = document.getElementById(zoneId);
+      if (!zone) return;
+      const inputId = zone.dataset.fileInput;
+      const nameId = zone.dataset.fileName;
+      const input = inputId ? document.getElementById(inputId) : null;
+      const nameEl = nameId ? document.getElementById(nameId) : null;
+      if (!input) return;
+
+      function setDragState(active) {
+        zone.classList.toggle("is-dragover", active);
+      }
+
+      function applyDroppedFile(file) {
+        if (!file) return;
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        input.files = transfer.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        if (nameEl) {
+          nameEl.textContent = file.name;
+          nameEl.classList.add("is-selected");
+        }
+      }
+
+      ["dragenter", "dragover"].forEach(function (eventName) {
+        zone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          setDragState(true);
+        });
+      });
+
+      ["dragleave", "drop"].forEach(function (eventName) {
+        zone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (eventName === "dragleave" && zone.contains(event.relatedTarget)) return;
+          setDragState(false);
+          if (eventName === "drop" && event.dataTransfer && event.dataTransfer.files.length) {
+            applyDroppedFile(event.dataTransfer.files[0]);
+          }
+        });
+      });
+    }
+
+    setupFileDropZone("etl-file-zone");
+    setupFileDropZone("llm-file-zone");
 
     function setStatus(el, type, message) {
       el.className = "status-message " + (type || "");
@@ -873,7 +933,7 @@
       clearResult(result);
 
       if (!fileInput.files || !fileInput.files[0]) {
-        setStatus(status, "error", "Please choose a CSV file.");
+        setStatus(status, "error", "Please choose or drag and drop a CSV file.");
         result.innerHTML = RESULT_PLACEHOLDERS.etl;
         setClearVisible("etl-clear", true);
         return;
@@ -1019,7 +1079,7 @@
 
       const text = document.getElementById("llm-text").value.trim();
       if (!text) {
-        setStatus(status, "error", "Please paste text or upload a .txt file.");
+        setStatus(status, "error", "Please paste text or upload or drag and drop a .txt file.");
         result.innerHTML = RESULT_PLACEHOLDERS.llm;
         setClearVisible("llm-clear", true);
         return;

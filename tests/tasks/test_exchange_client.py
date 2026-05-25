@@ -131,6 +131,32 @@ def test_api_rate_limit_raises(tmp_path):
             client.get_rates()
 
 
+def test_http_404_raises_exchange_api_error(tmp_path):
+    """HTTP 404 raises ExchangeAPIError without retrying."""
+    client = ExchangeRateClient(cache_file=tmp_path / "cache.json", request_delay=0)
+    with patch(
+            "app.tasks.exchange.client.requests.get",
+            return_value=_mock_response(status_code=404, text="Not Found"),
+    ) as mock_get:
+        with pytest.raises(ExchangeAPIError, match="404"):
+            client.get_rates()
+
+    mock_get.assert_called_once()
+
+
+def test_http_500_raises_exchange_api_error_without_retry(tmp_path):
+    """HTTP 500 raises ExchangeAPIError and does not retry."""
+    client = ExchangeRateClient(cache_file=tmp_path / "cache.json", request_delay=0)
+    with patch(
+            "app.tasks.exchange.client.requests.get",
+            return_value=_mock_response(status_code=500, text="Internal Server Error"),
+    ) as mock_get:
+        with pytest.raises(ExchangeAPIError, match="500"):
+            client.get_rates()
+
+    mock_get.assert_called_once()
+
+
 def test_rates_response_contains_eur_usd_gbp(tmp_path):
     """get_rates includes positive BGN-per-unit values for EUR, USD, and GBP."""
     cache_file = tmp_path / "cache.json"

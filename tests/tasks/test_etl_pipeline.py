@@ -83,6 +83,12 @@ def test_pipeline_processes_valid_rows_and_report(tmp_path: Path, sample_csv: Pa
     saved = json.loads(output_json.read_text(encoding="utf-8"))
     assert len(saved["records"]) == 1
 
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Rejected rows" in report_text
+    assert "invalid_date" in report_text
+    assert len(result.rejected_rows) == 3
+    assert result.rejected_rows[0].reason in report_text
+
 
 def test_pipeline_raises_when_file_missing(tmp_path: Path):
     """Pipeline raises ETLFileNotFoundError when the input CSV does not exist."""

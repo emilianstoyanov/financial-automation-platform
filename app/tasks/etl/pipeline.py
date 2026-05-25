@@ -60,7 +60,7 @@ class ETLPipelineService:
             report.removed_rows = report.total_rows - report.cleaned_rows
 
             if persist:
-                self._load(cleaned_records, report)
+                self._load(cleaned_records, report, rejected_rows)
 
             logger.info(
                 "ETL completed: %s cleaned, %s removed",
@@ -219,7 +219,12 @@ class ETLPipelineService:
 
         return unique, report, rejected_rows
 
-    def _load(self, records: list[CleanFinancialRecord], report: QualityReport) -> None:
+    def _load(
+            self,
+            records: list[CleanFinancialRecord],
+            report: QualityReport,
+            rejected_rows: list[RejectedRow],
+    ) -> None:
         """Write cleaned JSON to ``output_json_path`` and text report to ``report_path``."""
         self.output_json_path.parent.mkdir(parents=True, exist_ok=True)
         self.report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -237,7 +242,7 @@ class ETLPipelineService:
             json.dump(payload, json_file, indent=2, ensure_ascii=False)
 
         with self.report_path.open("w", encoding="utf-8") as report_file:
-            report_file.write(report.format_text())
+            report_file.write(report.format_text(rejected_rows))
 
         logger.info("Wrote cleaned data to %s", self.output_json_path)
         logger.info("Wrote quality report to %s", self.report_path)

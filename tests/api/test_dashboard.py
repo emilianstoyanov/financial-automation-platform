@@ -17,7 +17,8 @@ def test_dashboard_home(client):
     assert "/api/v1" in body
     assert "result-panel" in body
     assert "llm-file" in body
-    assert "Upload document" in body
+    assert "drag and drop" in body
+    assert "etl-file-zone" in body
     assert "etl-rejected-toggle" in body
     assert "Data Quality:" in body
     assert 'href="/static/favicon.png"' in body
