@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import requests
 from typing import TYPE_CHECKING
+from urllib3.exceptions import LocationParseError
 from app.tasks.scraping.exceptions import ScrapingPageError
 from app.tasks.scraping.http_session import build_browser_headers, decode_response_text
 from app.tasks.scraping.cloudflare import cloudflare_blocked_message, is_cloudflare_challenge
@@ -48,6 +49,8 @@ class PageFetcher:
             )
         except requests.Timeout as exc:
             raise ScrapingPageError("Page request timed out") from exc
+        except LocationParseError as exc:
+            raise ScrapingPageError("Page request failed: invalid host") from exc
         except requests.RequestException as exc:
             raise ScrapingPageError(f"Page request failed: {exc}") from exc
 

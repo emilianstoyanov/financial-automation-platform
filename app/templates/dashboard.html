@@ -873,10 +873,35 @@
         buildJsonOutputBlock(json, "Structured extraction");
     }
 
+    const SCRAPE_INVALID_URL_MESSAGE =
+      "Invalid or unreachable URL. Please check the address and try again.";
+
     function isScrapeBlockedError(errorText) {
       if (!errorText) return false;
       const lower = String(errorText).toLowerCase();
       return /cloudflare|blocked|forbidden|\b403\b|captcha|waf/.test(lower);
+    }
+
+    function isScrapeUrlUnreachableError(errorText) {
+      if (!errorText || isScrapeBlockedError(errorText)) return false;
+      const lower = String(errorText).toLowerCase();
+      return (
+        /invalid url:|page request failed|page request timed out|page not found|failed to parse|label empty or too long|name or service not known|getaddrinfo|nodename|no route to host|connection refused|max retries exceeded|newconnectionerror|locationparseerror|request failed|unprocessable entity/.test(
+          lower
+        )
+      );
+    }
+
+    function friendlyScrapeUrlError(message) {
+      if (!message || isScrapeBlockedError(message)) return message;
+      if (isScrapeUrlUnreachableError(message)) return SCRAPE_INVALID_URL_MESSAGE;
+      return message;
+    }
+
+    function parseScrapeErrorResponse(response) {
+      return parseErrorResponse(response).then(function (message) {
+        return friendlyScrapeUrlError(message);
+      });
     }
 
     function scrapeFirstError(errors) {
@@ -919,7 +944,7 @@
       let alertHtml = "";
 
       if (shouldShowScrapeErrorAlert(data, documentCount)) {
-        const firstError = scrapeFirstError(errors);
+        const firstError = friendlyScrapeUrlError(scrapeFirstError(errors));
         const message =
           firstError ||
           "No documents were found and the scrape did not complete successfully.";
@@ -1744,7 +1769,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url: url }),
         });
-        if (!response.ok) throw new Error(await parseErrorResponse(response));
+        if (!response.ok) throw new Error(await parseScrapeErrorResponse(response));
         const data = await response.json();
         const count = data.total_documents ?? (data.documents ? data.documents.length : 0);
         const errors = data.errors || [];
@@ -1753,12 +1778,14 @@
         setStatus(
           status,
           scrapeFailed ? "error" : "success",
-          "Found " + count + " document(s) — status: " + data.status
+          scrapeFailed && errors.length > 0
+            ? friendlyScrapeUrlError(scrapeFirstError(errors))
+            : "Found " + count + " document(s) — status: " + data.status
         );
         renderScrapeResult(result, data);
         setClearVisible("scrape-clear", true);
       } catch (err) {
-        setStatus(status, "error", err.message || String(err));
+        setStatus(status, "error", friendlyScrapeUrlError(err.message || String(err)));
         setClearVisible("scrape-clear", true);
       } finally {
         setLoading(btn, false);

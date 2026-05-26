@@ -2,7 +2,10 @@
 
 import json
 from unittest.mock import patch
+from fastapi.testclient import TestClient
+from app.main import app
 from app.tasks.scraping.scraper import DocumentScraper
+from app.tasks.scraping.warnings import SCRAPE_INVALID_OR_UNREACHABLE_URL_MESSAGE
 import app.tasks.scraping.logging_setup as logging_setup
 from app.tasks.scraping.constants import PREVIEW_MAX_CHARS
 from app.tasks.scraping.exceptions import ScrapingPageError
@@ -107,6 +110,20 @@ def test_process_targets_handles_blocked_page_gracefully(tmp_path):
     assert "minfin.bg" in result.errors[0]
     assert result.total_documents == 1
     assert result.documents[0].date_published == "2024-03-15"
+
+
+def test_scrape_url_unreachable_host_returns_friendly_error():
+    """Malformed hosts return a friendly message instead of a server error."""
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/scraping/scrape-url",
+        json={"url": "http://ww..b/bg/94"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "failed"
+    assert data["total_documents"] == 0
+    assert data["errors"] == [SCRAPE_INVALID_OR_UNREACHABLE_URL_MESSAGE]
 
 
 def test_scraping_log_contains_start_and_finish(tmp_path, monkeypatch):

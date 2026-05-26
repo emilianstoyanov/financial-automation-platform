@@ -42,6 +42,8 @@ def test_dashboard_home(client):
     assert "news-article-card" in body
     assert "formatNewsDateTime" in body
     assert "friendlyFeedWarning" in body
+    assert "friendlyScrapeUrlError" in body
+    assert "Invalid or unreachable URL. Please check the address and try again." in body
     assert "buildNewsLastUpdatedWarningSummary" in body
     assert "newsWarningToggleBadge" in body
     assert "news-warning-toggle" in body

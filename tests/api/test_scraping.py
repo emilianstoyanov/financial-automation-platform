@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 from app.tasks.scraping.models import ScrapedDocument, ScrapingResult
+from app.tasks.scraping.warnings import SCRAPE_INVALID_OR_UNREACHABLE_URL_MESSAGE
 
 
 def _sample_result() -> ScrapingResult:
@@ -50,9 +51,28 @@ def test_scrape_url_endpoint(client):
 
 
 def test_scrape_url_rejects_invalid_url(client):
-    """POST scrape-url returns 400 for an invalid URL body."""
+    """POST scrape-url returns 422 for a Pydantic-invalid URL body."""
     response = client.post(
         "/api/v1/scraping/scrape-url",
         json={"url": "not-a-valid-url"},
     )
     assert response.status_code == 422
+
+
+def test_scrape_url_maps_failed_result_errors(client):
+    """POST scrape-url maps unreachable hosts to a friendly error message."""
+    with patch(
+        "app.api.v1.scraping.ScrapingApplicationService.scrape_url",
+        return_value=ScrapingResult(
+            status="failed",
+            documents=[],
+            errors=["http://bad.example: Page request failed: timeout"],
+        ),
+    ):
+        response = client.post(
+            "/api/v1/scraping/scrape-url",
+            json={"url": "https://bad.example/page"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["errors"] == [SCRAPE_INVALID_OR_UNREACHABLE_URL_MESSAGE]

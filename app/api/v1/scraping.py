@@ -12,6 +12,10 @@ from app.tasks.scraping.exceptions import (
     ScrapingInvalidURLError,
     ScrapingPageError,
 )
+from app.tasks.scraping.warnings import (
+    SCRAPE_INVALID_OR_UNREACHABLE_URL_MESSAGE,
+    friendly_scrape_url_error_message,
+)
 
 router = APIRouter(prefix="/scraping", tags=["Scraping"])
 
@@ -60,15 +64,20 @@ async def scrape_url(body: ScrapeUrlRequest) -> ScrapingProcessResponse:
     except ScrapingInvalidURLError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
+            detail=SCRAPE_INVALID_OR_UNREACHABLE_URL_MESSAGE,
         ) from exc
     except ScrapingPageError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=str(exc),
+            detail=friendly_scrape_url_error_message(str(exc)),
         ) from exc
 
-    return _build_response(result)
+    response = _build_response(result)
+    if response.errors:
+        response.errors = [
+            friendly_scrape_url_error_message(error) for error in response.errors
+        ]
+    return response
 
 
 @router.post(

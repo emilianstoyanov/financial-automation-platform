@@ -4,6 +4,7 @@ import json
 import time
 import random
 import requests
+from urllib3.exceptions import LocationParseError
 from pathlib import Path
 from urllib.parse import urlparse
 from datetime import datetime, timezone
@@ -235,7 +236,7 @@ class DocumentScraper:
                 headers=build_browser_headers(referer=root_url, navigation=True),
             )
             logger.debug("Warmed up session for %s", host)
-        except requests.RequestException as exc:
+        except (requests.RequestException, LocationParseError) as exc:
             logger.debug("Host warm-up failed for %s: %s", root_url, exc)
 
         self._warmed_hosts.add(host)
