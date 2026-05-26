@@ -19,6 +19,12 @@ FastAPI backend for financial data workflows: CSV ETL, live exchange rates, docu
 
 Production is deployed on **Heroku** and is ready to test in the browser.
 
+<img width="600"  alt="image" src="https://github.com/user-attachments/assets/529019f8-3460-4b9a-acf5-818fe5120539" />
+<img width="600"  alt="image" src="https://github.com/user-attachments/assets/7378cf17-c4cf-4293-88f4-c98bd8e810f5" />
+<img width="600" alt="Financial Automation Platform dashboard" src="https://github.com/user-attachments/assets/1db6dd24-b5c5-40a2-8917-a0ec8bd894ac" />
+
+
+
 No local setup or API keys are required for the live demo. The production environment is already configured for the available demo features, including LLM extraction.
 
 | Resource | URL |
